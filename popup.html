@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        width: 300px;
+        padding: 10px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        color: #333;
+      }
+
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 13px;
+      }
+
+      .status.connected {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .status.disconnected {
+        background-color: #ffebee;
+        color: #c62828;
+      }
+
+      .info-section {
+        margin-bottom: 10px;
+      }
+
+      .info-label {
+        font-weight: 500;
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 5px;
+      }
+
+      .info-value {
+        color: #333;
+        font-size: 12px;
+        word-break: break-all;
+      }
+
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 10px;
+        background-color: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      button:hover {
+        background-color: #1565c0;
+      }
+
+      button:active {
+        background-color: #0d47a1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>CCExtension</h1>
+
+      <div id="status" class="status disconnected">
+        <span>未连接</span>
+      </div>
+
+      <div class="info-section">
+        <div class="info-label">连接状态</div>
+        <div id="connectionStatus" class="info-value">正在连接...</div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-label">当前标签页</div>
+        <div id="currentTab" class="info-value">获取中...</div>
+      </div>
+
+      <button id="reconnectBtn">重新连接</button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
