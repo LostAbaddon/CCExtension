@@ -67,7 +67,6 @@ function connectToCCCore() {
     attemptReconnect();
   }
 }
-
 /**
  * 清除重连定时器
  */
@@ -78,7 +77,6 @@ function stopReconnectTimer() {
     console.log('[Claude Code Extension] 已停止周期重连');
   }
 }
-
 /**
  * 启动周期重连
  */
@@ -97,7 +95,6 @@ function startReconnectTimer() {
     }
   }, CONFIG.reconnectInterval);
 }
-
 /**
  * 尝试重新连接
  */
@@ -123,7 +120,6 @@ function sendMessage(message) {
     return false;
   }
 }
-
 /**
  * 处理来自 Claude Code Core 的消息
  */
@@ -168,7 +164,7 @@ async function handleRequest(action, data, messageId) {
         break;
 
       default:
-        result = { success: false, error: `未知的操作: ${action}` };
+        result = { ok: false, error: `未知的操作: ${action}` };
     }
 
     // 发送响应
@@ -177,12 +173,13 @@ async function handleRequest(action, data, messageId) {
       messageId: messageId,
       data: result,
     });
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[Claude Code Extension] 处理请求失败:', error.message);
     sendMessage({
       type: 'RESPONSE',
       messageId: messageId,
-      data: { success: false, error: error.message },
+      data: { ok: false, error: error.message },
     });
   }
 }
@@ -198,45 +195,30 @@ async function handleCreateNotification(data) {
   const delay = Math.max(0, triggerTime - now);
 
   console.log(`[Claude Code Extension] 创建通知: "${title}", 延迟 ${delay}ms`);
-
-  // 如果需要延迟，则使用 alarm 机制
-  if (delay > 0 && chrome.alarms) {
-    const alarmName = `notification_${Date.now()}`;
-    try {
-      chrome.alarms.create(alarmName, { delayInMinutes: Math.ceil(delay / 60000) });
-      return { success: true, status: 'scheduled', alarmName };
-    } catch (error) {
-      console.warn('[Claude Code Extension] Alarm 创建失败，将立即显示通知:', error);
-      // 如果 alarm 失败，立即显示
-      return showNotification(title, message);
-    }
-  }
-
-  // 立即显示通知
-  return showNotification(title, message);
+  return showNotification(title, message, delay);
 }
-
 /**
  * 显示通知
  */
-async function showNotification(title, message) {
+async function showNotification(title, message, delay) {
   try {
     const notificationId = `notification_${Date.now()}`;
 
-    await chrome.notifications.create(notificationId, {
-      type: 'basic',
-      iconUrl: 'icons/icon-128.png',
-      title: title,
-      message: message,
-      requireInteraction: true,
-    });
-
-    console.log(`[Claude Code Extension] 通知已显示: ${notificationId}`);
-
-    return { success: true, status: 'displayed', notificationId };
-  } catch (error) {
+    setTimeout(() => {
+      console.log(`[Claude Code Extension] 通知已显示: ${notificationId}`);
+      chrome.notifications.create(notificationId, {
+        type: 'basic',
+        iconUrl: 'icons/cyprite.png',
+        title: title,
+        message: message,
+        requireInteraction: true,
+      });
+    }, delay);
+    return { ok: true, status: 'displayed', notificationId };
+  }
+  catch (error) {
     console.error('[Claude Code Extension] 显示通知失败:', error.message);
-    return { success: false, error: error.message };
+    return { ok: false, error: error.message };
   }
 }
 
@@ -267,10 +249,10 @@ async function handleOpenPage(data) {
       await chrome.windows.update(targetTab.windowId, { focused: true });
     }
 
-    return { success: true, status: 'opened', tabId: targetTab.id };
+    return { ok: true, status: 'opened', tabId: targetTab.id };
   } catch (error) {
     console.error('[Claude Code Extension] 打开网页失败:', error.message);
-    return { success: false, error: error.message };
+    return { ok: false, error: error.message };
   }
 }
 
@@ -288,16 +270,15 @@ function startHeartbeat() {
 /**
  * 监听 alarm 事件（用于延迟通知）
  */
-if (chrome.alarms) {
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name.startsWith('notification_')) {
-      // 从 alarm 名称中提取通知信息
-      // 这是一个简化的实现，实际使用时可能需要存储通知信息
-      console.log(`[Claude Code Extension] Alarm triggered: ${alarm.name}`);
+if (chrome.notifications) {
+  chrome.notifications.onClosed.addListener((notifyName) => {
+    if (notifyName.startsWith('notification_')) {
+      console.log(`[Claude Code Extension] Notification triggered: ${notifyName}`);
     }
   });
-} else {
-  console.warn('[Claude Code Extension] chrome.alarms API 不可用');
+}
+else {
+  console.warn('[Claude Code Extension] chrome.notifications API 不可用');
 }
 
 /**
@@ -307,7 +288,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
   sendPageInfo(tab);
 });
-
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // 只在 URL 改变时发送
   if (changeInfo.url) {
@@ -350,7 +330,7 @@ console.log('[Claude Code Extension] Background Service Worker 已加载');
 console.log('[Claude Code Extension] 可用的 API:');
 console.log('  - chrome.notifications:', !!chrome.notifications);
 console.log('  - chrome.tabs:', !!chrome.tabs);
-console.log('  - chrome.alarms:', !!chrome.alarms);
+console.log('  - chrome.notifications:', !!chrome.notifications);
 console.log('  - chrome.windows:', !!chrome.windows);
 console.log('  - chrome.runtime:', !!chrome.runtime);
 

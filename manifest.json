@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "Chrome extension for Claude Code - provides notifications and page tracking",
   "permissions": [
-    "alarms",
     "notifications",
     "tabs"
   ],
