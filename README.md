@@ -1,5 +1,8 @@
 # CCExtension - Claude Code Chrome 插件
 
+- 版本：1.0.1
+- 作者：LostAbaddon
+
 CCExtension 是与 CCCore 配套的 Chrome 插件，为 Claude Code 提供跨平台的通知和页面跟踪功能。
 
 ## 相关项目

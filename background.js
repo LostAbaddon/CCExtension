@@ -13,6 +13,29 @@ const CONFIG = {
 let wsConnection = null;
 let reconnectTimer = null; // 周期重连定时器
 let isConnecting = false;
+let useBrowserNotification = true; // 是否使用浏览器通知
+let localRemindersList = []; // 本地提醒列表副本
+let localReminderTimers = {};
+
+/**
+ * 初始化通知偏好设置
+ */
+async function initNotificationPreference() {
+	try {
+		const result = await chrome.storage.local.get('useBrowserNotification');
+		if (result.useBrowserNotification !== undefined) {
+			useBrowserNotification = result.useBrowserNotification;
+			console.log('[Claude Code Extension] 已加载通知偏好:', { useBrowserNotification });
+		} else {
+			// 如果未设置过，使用默认值 true
+			useBrowserNotification = true;
+			await chrome.storage.local.set({ useBrowserNotification });
+			console.log('[Claude Code Extension] 已初始化通知偏好为默认值: true');
+		}
+	} catch (error) {
+		console.error('[Claude Code Extension] 初始化通知偏好失败:', error.message);
+	}
+}
 
 /**
  * 连接到 CCCore
@@ -40,6 +63,9 @@ function connectToCCCore() {
         type: 'REGISTER',
         clientType: 'extension',
       });
+
+      // 连接后获取初始提醒列表
+      fetchInitialRemindersList();
 
       // 启动定期心跳
       startHeartbeat();
@@ -159,6 +185,18 @@ async function handleRequest(action, data, messageId) {
         result = await handleCreateNotification(data);
         break;
 
+      case 'CANCEL_NOTIFICATION':
+        result = await handleCancelNotification(data);
+        break;
+
+      case 'REMINDER_LIST_UPDATE':
+        result = handleReminderListUpdate(data);
+        break;
+
+      case 'QUERY_NOTIFICATION_PREFERENCE':
+        result = handleQueryNotificationPreference();
+        break;
+
       case 'OPEN_PAGE':
         result = await handleOpenPage(data);
         break;
@@ -188,38 +226,101 @@ async function handleRequest(action, data, messageId) {
  * 创建通知
  */
 async function handleCreateNotification(data) {
-  const { title, message, triggerTime } = data;
+	const { title, message, triggerTime, id } = data;
 
-  // 计算延迟时间
+	// 检查是否使用浏览器通知
+	if (!useBrowserNotification) {
+		console.log(`[Claude Code Extension] 通知(${id})回退到系统原生通知`);
+		return {
+			ok: false,
+			fallback: true,
+		};
+	}
+
+	const storage = await chrome.storage.local.get('remindersList');
+	const now = Date.now();
+	let list = storage.remindersList || [];
+	list = list.filter(item => item.triggerTime > now);
+	list.push(data);
+	localRemindersList = list;
+	storage.remindersList = list;
+	chrome.storage.local.set(storage);
+
+	// 计算延迟时间
+	const delay = Math.max(0, triggerTime - now);
+
+	console.log(`[Claude Code Extension] 创建通知(${id}): "${title}", 延迟 ${delay}ms`);
+	return showNotification(id, title, message, delay);
+}
+/**
+ * 取消通知
+ */
+async function handleCancelNotification(id) {
+  const timer = localReminderTimers[id];
+  if (timer) clearTimeout(timer);
+
+  const storage = await chrome.storage.local.get('remindersList');
   const now = Date.now();
-  const delay = Math.max(0, triggerTime - now);
-
-  console.log(`[Claude Code Extension] 创建通知: "${title}", 延迟 ${delay}ms`);
-  return showNotification(title, message, delay);
+  let list = storage.remindersList || [];
+  list = list.filter(item => item.triggerTime > now);
+  list = list.filter(item => item.id !== id);
+  localRemindersList = list;
+  storage.remindersList = list;
+  chrome.storage.local.set(storage);
 }
 /**
  * 显示通知
  */
-async function showNotification(title, message, delay) {
-  try {
-    const notificationId = `notification_${Date.now()}`;
+async function showNotification(id, title, message, delay) {
+  const timer = setTimeout(async () => {
+    clearTimeout(timer);
+    delete localReminderTimers[id];
 
-    setTimeout(() => {
-      console.log(`[Claude Code Extension] 通知已显示: ${notificationId}`);
-      chrome.notifications.create(notificationId, {
-        type: 'basic',
-        iconUrl: 'icons/cyprite.png',
-        title: title,
-        message: message,
-        requireInteraction: true,
-      });
-    }, delay);
-    return { ok: true, status: 'displayed', notificationId };
-  }
-  catch (error) {
-    console.error('[Claude Code Extension] 显示通知失败:', error.message);
-    return { ok: false, error: error.message };
-  }
+    const storage = await chrome.storage.local.get('remindersList');
+    const now = Date.now();
+    let list = storage.remindersList || [];
+    const rawCount = list.length;
+    list = list.filter(item => item.id !== id);
+    const newCount = list.length;
+    list = list.filter(item => item.triggerTime > now);
+    if (list.length !== rawCount) {
+      storage.remindersList = list;
+      chrome.storage.local.set(storage);
+    }
+    if (newCount === rawCount) return;
+
+    console.log(`[Claude Code Extension] 通知已显示: ${id}`);
+    chrome.notifications.create(id, {
+      type: 'basic',
+      iconUrl: 'icons/cyprite.png',
+      title: title,
+      message: message,
+      requireInteraction: true,
+    });
+  }, delay);
+  localReminderTimers[id] = timer;
+  return { ok: true, status: 'displayed', id };
+}
+/**
+ * 处理提醒列表更新
+ */
+function handleReminderListUpdate(data) {
+  const { reminders, count } = data;
+
+  console.log('[Claude Code Extension] 收到提醒列表更新:', { count });
+
+  // 更新本地副本
+  localRemindersList = reminders || [];
+
+  // 存储到 chrome storage 用于 reminders 页面访问
+  chrome.storage.local.set({
+    remindersList: localRemindersList,
+    lastUpdateTime: Date.now(),
+  }, () => {
+    console.log('[Claude Code Extension] 提醒列表已保存到 storage');
+  });
+
+  return { ok: true, status: 'updated', count };
 }
 
 /**
@@ -254,6 +355,32 @@ async function handleOpenPage(data) {
     console.error('[Claude Code Extension] 打开网页失败:', error.message);
     return { ok: false, error: error.message };
   }
+}
+
+/**
+ * 处理通知偏好查询
+ */
+function handleQueryNotificationPreference() {
+  console.log('[Claude Code Extension] 返回通知偏好:', { useBrowserNotification });
+  return {
+    ok: true,
+    useBrowserNotification,
+    message: useBrowserNotification ? '使用浏览器通知' : '使用本地系统通知',
+  };
+}
+
+/**
+ * 设置通知偏好
+ */
+function setNotificationPreference(useChrome) {
+  useBrowserNotification = useChrome;
+  console.log('[Claude Code Extension] 通知偏好已更新:', { useBrowserNotification });
+
+  chrome.storage.local.set({
+    useBrowserNotification,
+  }, () => {
+    console.log('[Claude Code Extension] 通知偏好已保存');
+  });
 }
 
 /**
@@ -318,11 +445,62 @@ function sendPageInfo(tab) {
 }
 
 /**
+ * 从 CCCore 获取初始提醒列表
+ */
+function fetchInitialRemindersList() {
+  // 这是一个同步操作，无需等待，直接通过 HTTP 获取会更简单
+  const ccCoreHost = 'localhost';
+  const ccCorePort = 3579;
+
+  fetch(`http://${ccCoreHost}:${ccCorePort}/api/reminders`)
+    .then(res => res.json())
+    .then(data => {
+      if (data?.ok && data?.data?.reminders) {
+        localRemindersList = data.data.reminders;
+        chrome.storage.local.set({
+          remindersList: localRemindersList,
+          lastUpdateTime: Date.now(),
+        }, () => {
+          console.log('[Claude Code Extension] 初始提醒列表已加载:', { count: localRemindersList.length });
+        });
+      }
+    })
+    .catch(error => {
+      console.warn('[Claude Code Extension] 获取初始提醒列表失败:', error.message);
+    });
+}
+
+/**
  * 初始化
  */
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('[Claude Code Extension] 插件已安装');
-  connectToCCCore();
+	console.log('[Claude Code Extension] 插件已安装');
+	initNotificationPreference();
+	connectToCCCore();
+});
+
+/**
+ * 通讯事件处理
+ */
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	if (request.type === 'GET_STATUS') {
+		// 返回连接状态
+		sendResponse({
+			connected: wsConnection?.readyState === WebSocket.OPEN,
+		});
+	}
+	if (request.type === 'RECONNECT') {
+		// 触发重新连接
+		connectToCCCore();
+		sendResponse({ ok: true });
+	}
+	if (request.type === 'SET_NOTIFICATION_PREFERENCE') {
+		// 更新通知偏好
+		setNotificationPreference(request.useBrowserNotification);
+		sendResponse({ ok: true });
+	}
+
+	return false;
 });
 
 // 初始化日志
@@ -334,5 +512,8 @@ console.log('  - chrome.notifications:', !!chrome.notifications);
 console.log('  - chrome.windows:', !!chrome.windows);
 console.log('  - chrome.runtime:', !!chrome.runtime);
 
-// 启动时连接
-connectToCCCore();
+// 启动时初始化通知偏好和连接
+(async () => {
+	await initNotificationPreference();
+	connectToCCCore();
+})();

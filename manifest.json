@@ -1,14 +1,17 @@
 {
   "manifest_version": 3,
   "name": "CCExtension - Claude Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrome extension for Claude Code - provides notifications and page tracking",
   "permissions": [
     "notifications",
-    "tabs"
+    "tabs",
+    "storage",
+    "windows"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://localhost:3579/*"
   ],
   "background": {
     "service_worker": "background.js"

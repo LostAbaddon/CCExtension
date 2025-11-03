@@ -76,6 +76,81 @@
       button:active {
         background-color: #0d47a1;
       }
+
+      button.secondary {
+        background-color: #4caf50;
+      }
+
+      button.secondary:hover {
+        background-color: #43a047;
+      }
+
+      button.secondary:active {
+        background-color: #388e3c;
+      }
+
+      .setting-section {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      .setting-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .setting-label {
+        font-size: 12px;
+        color: #666;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        border-radius: 24px;
+        transition: 0.3s;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.3s;
+      }
+
+      input:checked + .toggle-slider {
+        background-color: #1976d2;
+      }
+
+      input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+      }
     </style>
   </head>
   <body>
@@ -97,6 +172,21 @@
       </div>
 
       <button id="reconnectBtn">重新连接</button>
+      <!-- <button id="remindersBtn" class="secondary">管理提醒</button> -->
+
+      <div class="setting-section">
+        <div class="setting-item">
+          <span class="setting-label">使用浏览器通知</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notificationToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 11px; color: #999; margin-top: 5px;">
+          <span>启用：使用 Chrome 通知</span><br />
+          <span>禁用：使用系统原生通知</span>
+        </div>
+      </div>
     </div>
 
     <script src="popup.js"></script>
