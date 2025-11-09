@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>CCExtension 设置</title>
+<style>
+body {
+	margin: 0;
+	padding: 20px;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	background-color: #f5f5f5;
+	min-width: 600px;
+}
+
+.container {
+	max-width: 800px;
+	margin: 0 auto;
+	background-color: white;
+	border-radius: 8px;
+	padding: 20px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+	margin: 0 0 20px 0;
+	font-size: 24px;
+	color: #333;
+	border-bottom: 2px solid #1976d2;
+	padding-bottom: 10px;
+}
+
+h2 {
+	margin: 20px 0 15px 0;
+	font-size: 18px;
+	color: #555;
+}
+
+.status {
+	padding: 12px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	font-size: 14px;
+}
+
+.status.connected {
+	background-color: #e8f5e9;
+	color: #2e7d32;
+	border-left: 4px solid #4caf50;
+}
+
+.status.disconnected {
+	background-color: #ffebee;
+	color: #c62828;
+	border-left: 4px solid #f44336;
+}
+
+.section {
+	margin-bottom: 15px;
+	padding: 0px 15px;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+}
+
+.setting-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 5px;
+	padding: 10px 0;
+}
+
+.setting-label {
+	font-size: 14px;
+	color: #333;
+	font-weight: 500;
+}
+
+.setting-description {
+	font-size: 12px;
+	color: #666;
+	margin-top: 5px;
+}
+
+.toggle-switch {
+	position: relative;
+	display: inline-block;
+	width: 50px;
+	height: 28px;
+}
+
+.toggle-switch input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.toggle-slider {
+	position: absolute;
+	cursor: pointer;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #ccc;
+	border-radius: 28px;
+	transition: 0.3s;
+}
+
+.toggle-slider:before {
+	position: absolute;
+	content: "";
+	height: 20px;
+	width: 20px;
+	left: 4px;
+	bottom: 4px;
+	background-color: white;
+	border-radius: 50%;
+	transition: 0.3s;
+}
+
+input:checked + .toggle-slider {
+	background-color: #1976d2;
+}
+
+input:checked + .toggle-slider:before {
+	transform: translateX(22px);
+}
+
+.input-group {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.input-field {
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 14px;
+	width: 100px;
+}
+
+.input-unit {
+	font-size: 14px;
+	color: #666;
+}
+
+button {
+	padding: 10px 20px;
+	background-color: #1976d2;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 14px;
+	margin-right: 10px;
+}
+
+button:hover {
+	background-color: #1565c0;
+}
+
+button:active {
+	background-color: #0d47a1;
+}
+
+button.secondary {
+	background-color: #4caf50;
+}
+
+button.secondary:hover {
+	background-color: #43a047;
+}
+
+button.secondary:active {
+	background-color: #388e3c;
+}
+
+.info-value {
+	color: #666;
+	font-size: 13px;
+}
+
+.button-group {
+	margin-top: 20px;
+	padding-top: 15px;
+	border-top: 1px solid #e0e0e0;
+}
+</style>
+</head>
+<body>
+<div class="container">
+	<h1>CCExtension 设置</h1>
+
+	<div id="status" class="status disconnected">
+		<span>未连接到 CCCore</span>
+	</div>
+
+	<!-- 连接信息 -->
+	<div class="section">
+		<h2>连接信息</h2>
+		<div class="setting-item">
+			<span class="setting-label">连接状态</span>
+			<span id="connectionStatus" class="info-value">正在连接...</span>
+		</div>
+		<div class="setting-item">
+			<span class="setting-label">当前标签页</span>
+			<span id="currentTab" class="info-value">获取中...</span>
+		</div>
+	</div>
+
+	<!-- 通知设置 -->
+	<div class="section">
+		<h2>通知设置</h2>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">使用浏览器通知</div>
+				<div class="setting-description">启用：使用 Chrome 通知；禁用：使用系统原生通知</div>
+			</div>
+			<label class="toggle-switch">
+				<input type="checkbox" id="notificationToggle" />
+				<span class="toggle-slider"></span>
+			</label>
+		</div>
+	</div>
+
+	<!-- HeadlessKnight 设置 -->
+	<div class="section">
+		<h2>HeadlessKnight 设置</h2>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">启用任务完成提醒</div>
+				<div class="setting-description">当 HeadlessKnight 完成任务时显示通知</div>
+			</div>
+			<label class="toggle-switch">
+				<input type="checkbox" id="stopReminderToggle" />
+				<span class="toggle-slider"></span>
+			</label>
+		</div>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">提醒等待时长</div>
+				<div class="setting-description">任务执行超过此时长才显示完成提醒</div>
+			</div>
+			<div class="input-group">
+				<input type="number" id="stopReminderDelay" class="input-field" min="0" step="1" />
+				<span class="input-unit">秒</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- 操作按钮 -->
+	<div class="button-group">
+		<button id="saveBtn" class="secondary">保存设置</button>
+		<button id="reconnectBtn">重新连接</button>
+	</div>
+</div>
+
+<script src="settings.js"></script>
+</body>
+</html>

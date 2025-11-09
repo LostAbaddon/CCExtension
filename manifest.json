@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "CCExtension - Claude Code",
-  "version": "1.0.1",
-  "description": "Chrome extension for Claude Code - provides notifications and page tracking",
+  "name": "Claudius",
+  "version": "1.1.0",
+  "description": "Claude Code in the Shell",
   "permissions": [
     "notifications",
     "tabs",
@@ -17,22 +17,36 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "CCExtension",
+    "default_title": "Claudius",
     "default_icon": {
-      "16": "icons/icon-16.svg",
-      "48": "icons/icon-48.svg",
-      "128": "icons/icon-128.svg"
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     },
-    "default_popup": "popup.html"
+    "default_popup": "pages/popup.html"
   },
   "icons": {
-    "16": "icons/icon-16.svg",
-    "48": "icons/icon-48.svg",
-    "128": "icons/icon-128.svg"
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "components/markup.js",
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
   "web_accessible_resources": [
     {
-      "resources": ["src/page-tracker.js"],
+      "resources": [
+        "src/page-tracker.js",
+        "style/main.css",
+        "pages/settings.html"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
