@@ -245,42 +245,22 @@ button.secondary:active {
 	transition: border-top-color 0.3s;
 }
 
-/* 主题切换按钮样式 */
-#theme-toggle-btn {
-	position: fixed;
-	top: 20px;
-	right: 20px;
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
+/* 自定义主题切换按钮样式（覆盖默认样式）*/
+#theme-toggle-btn:not(.menu-item) {
 	background-color: var(--container-bg);
 	border: 1px solid var(--emphasize-color);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
 	box-shadow: 0 2px 8px var(--box-shadow);
-	transition: all 0.3s ease;
-	z-index: 1000;
-	margin: 0px;
-	padding: 0px;
 }
 
-#theme-toggle-btn:hover {
+#theme-toggle-btn:not(.menu-item):hover {
 	background-color: var(--emphasize-color);
-	transform: scale(1.1);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-#theme-toggle-btn svg {
+#theme-toggle-btn:not(.menu-item) svg {
 	color: var(--front-color);
 }
 
-#theme-toggle-btn:hover svg {
+#theme-toggle-btn:not(.menu-item):hover svg {
 	color: var(--back-color);
-}
-
-#theme-toggle-btn .sun-icon,
-#theme-toggle-btn .moon-icon {
-	display: none;
 }

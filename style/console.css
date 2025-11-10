@@ -1,0 +1,21 @@
+/* 基础样式 */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	background-color: var(--back-color);
+	color: var(--front-color);
+	transition: background-color 0.3s ease, color 0.3s ease;
+	min-height: 100vh;
+}
+
+/* 容器 */
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+}

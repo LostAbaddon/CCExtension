@@ -45,7 +45,9 @@
       "resources": [
         "src/page-tracker.js",
         "style/theme.css",
+        "style/theme-toggle.css",
         "style/main.css",
+        "components/theme-toggle.js",
         "pages/settings.html"
       ],
       "matches": ["<all_urls>"]

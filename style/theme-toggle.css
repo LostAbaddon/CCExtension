@@ -1,0 +1,62 @@
+/* 主题切换按钮公共样式 */
+
+/* 固定在右上角的主题切换按钮样式 */
+#theme-toggle-btn:not(.menu-item) {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	width: 40px;
+	height: 40px;
+	background-color: var(--front-color);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	z-index: 1000;
+}
+
+#theme-toggle-btn:not(.menu-item):hover {
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#theme-toggle-btn:not(.menu-item) svg {
+	color: var(--back-color);
+}
+
+/* 菜单项中的主题切换按钮样式（用于 Markdown 渲染页） */
+#theme-toggle-btn.menu-item {
+	display: inline-flex;
+	width: 48px;
+	height: 48px;
+	background-color: var(--back-color);
+	border-radius: 50%;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	margin-left: 10px;
+	box-shadow: 0 2px 8px rgb(from var(--front-color) r g b / 50%);
+	transition: all 0.3s ease;
+}
+
+#theme-toggle-btn.menu-item:hover {
+	background-color: var(--emphasize-color);
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgb(from var(--emphasize-color) r g b / 30%);
+}
+
+#theme-toggle-btn.menu-item svg {
+	color: var(--front-color);
+}
+
+#theme-toggle-btn.menu-item:hover svg {
+	color: var(--back-color);
+}
+
+/* SVG 图标默认隐藏 */
+#theme-toggle-btn .sun-icon,
+#theme-toggle-btn .moon-icon {
+	display: none;
+}

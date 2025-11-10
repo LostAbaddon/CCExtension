@@ -4,7 +4,7 @@
  */
 
 // 目标页面的 URL
-const targetURL = chrome.runtime.getURL('pages/settings.html');
+const targetURL = chrome.runtime.getURL('pages/console.html');
 
 // 查询所有标签页，查找是否已存在 settings.html 页面
 console.log('CHROME.TABS    9');

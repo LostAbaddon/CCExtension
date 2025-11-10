@@ -117,7 +117,6 @@
 
 	// 检测并设置主题
 	function detectAndSetTheme() {
-		// 优先从存储中获取用户设置
 		chrome.storage.local.get(['theme'], (result) => {
 			let theme = result.theme;
 
@@ -140,6 +139,8 @@
 
 		const sunIcon = toggleBtn.querySelector('.sun-icon');
 		const moonIcon = toggleBtn.querySelector('.moon-icon');
+
+		if (!sunIcon || !moonIcon) return;
 
 		if (theme === 'dark') {
 			// 暗色模式显示太阳图标（点击后切换到亮色）
@@ -239,6 +240,7 @@
 	function loadStyles() {
 		const styles = [
 			chrome.runtime.getURL('style/main.css'),
+			chrome.runtime.getURL('style/theme-toggle.css'),
 		];
 
 		styles.forEach(styleUrl => {
