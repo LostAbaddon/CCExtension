@@ -6,6 +6,8 @@
 (function() {
 	'use strict';
 
+	const LongPressDuration = 1000;
+
 	/**
 	 * 初始化单个 voice_input 组件
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
@@ -76,48 +78,88 @@
 			recognition: null,
 			isRecording: false,
 			lastHeight: 0,
+			longPressTimer: null, // 长按计时器
+			isLongPress: false, // 是否触发了长按
 		};
 
 		// 自动调整高度
 		textarea.addEventListener('input', () => {
 			autoResize(voiceInputElement, textarea);
 		});
-
 		// focus/blur 事件处理
 		textarea.addEventListener('focus', () => {
 			inputWrapper.classList.add('focused');
 		});
-
 		textarea.addEventListener('blur', () => {
 			inputWrapper.classList.remove('focused');
 		});
-
-		// 语音输入按钮点击事件
-		voiceBtn.addEventListener('click', (e) => {
-			e.preventDefault(); // 阻止默认行为
-			handleVoiceInput(voiceInputElement);
-			// 保持 textarea 的焦点
-			setTimeout(() => {
-				textarea.focus();
-			}, 0);
-		});
-
-		// 阻止语音按钮获取焦点
-		voiceBtn.addEventListener('mousedown', (e) => {
-			e.preventDefault(); // 阻止焦点转移
-		});
-
-		// 提交按钮点击事件
-		submitBtn.addEventListener('click', () => {
-			handleSubmit(voiceInputElement);
-		});
-
 		// 支持 Ctrl+Enter 提交
 		textarea.addEventListener('keydown', (e) => {
 			if (e.ctrlKey && e.key === 'Enter') {
 				e.preventDefault();
 				handleSubmit(voiceInputElement);
 			}
+		});
+
+		// 鼠标按下时启动长按计时器
+		voiceBtn.addEventListener('mousedown', (e) => {
+			e.preventDefault(); // 阻止焦点转移
+			const config = voiceInputElement._config;
+
+			// 清除可能存在的旧计时器
+			if (config.longPressTimer) {
+				clearTimeout(config.longPressTimer);
+			}
+
+			// 重置长按标记
+			config.isLongPress = false;
+
+			// 启动长按计时器，到时间后自动开始语音识别
+			config.longPressTimer = setTimeout(() => {
+				console.log('[VoiceInput] 长按触发，自动开始语音识别');
+				config.isLongPress = true;
+				config.longPressTimer = null;
+				// 自动触发长按模式的语音识别
+				handleVoiceInput(voiceInputElement, LongPressDuration);
+				// 保持 textarea 的焦点
+				setTimeout(() => {
+					textarea.focus();
+				}, 0);
+			}, LongPressDuration);
+		});
+		// 鼠标抬起时处理语音输入
+		voiceBtn.addEventListener('mouseup', (e) => {
+			e.preventDefault(); // 阻止默认行为
+			const config = voiceInputElement._config;
+
+			// 如果定时器还在运行，说明是短按，取消定时器并进入短按模式
+			if (config.longPressTimer) {
+				clearTimeout(config.longPressTimer);
+				config.longPressTimer = null;
+				// 短按模式
+				handleVoiceInput(voiceInputElement, 0);
+				// 保持 textarea 的焦点
+				setTimeout(() => {
+					textarea.focus();
+				}, 0);
+			}
+			// 如果定时器已经触发（长按），则什么都不做，因为已经在定时器里启动了语音识别
+		});
+		// 鼠标移出按钮时取消计时器
+		voiceBtn.addEventListener('mouseleave', () => {
+			const config = voiceInputElement._config;
+
+			// 取消长按计时器
+			if (config.longPressTimer) {
+				clearTimeout(config.longPressTimer);
+				config.longPressTimer = null;
+				console.log('[VoiceInput] 鼠标移出，取消长按计时器');
+			}
+		});
+
+		// 提交按钮点击事件
+		submitBtn.addEventListener('click', () => {
+			handleSubmit(voiceInputElement);
 		});
 
 		// 初始化高度
@@ -162,12 +204,13 @@
 	/**
 	 * 处理语音输入
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
+	 * @param {number} pressDuration - 按压时长(毫秒)
 	 */
-	function handleVoiceInput(voiceInputElement) {
+	function handleVoiceInput(voiceInputElement, pressDuration = 0) {
 		const config = voiceInputElement._config;
 		if (!config) return;
 
-		console.log('[VoiceInput] 开始语音输入');
+		console.log('[VoiceInput] 开始语音输入，按压时长:', pressDuration, 'ms');
 
 		// 检查浏览器是否支持语音识别
 		const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -191,40 +234,60 @@
 		// 创建语音识别实例
 		const recognition = new SpeechRecognition();
 		recognition.lang = 'zh-CN'; // 设置语言为中文
-		recognition.continuous = false; // 单次识别
-		recognition.interimResults = false; // 不返回中间结果
 
-		console.log('[VoiceInput] 语音识别实例已创建');
+		// 根据按压时长决定识别模式
+		const isContinuous = pressDuration >= LongPressDuration;
+		recognition.continuous = isContinuous;
+		recognition.interimResults = isContinuous; // 持续模式返回中间结果
+		console.log('[VoiceInput] 语音识别实例已创建，模式:', isContinuous ? '持续识别' : '单次识别');
 
 		// 保存当前光标位置
-		const cursorPosition = textarea.selectionStart;
+		let lastResultIndex = -1;
 
 		recognition.onstart = () => {
 			console.log('[VoiceInput] 语音识别已启动');
 			config.isRecording = true;
 			voiceBtn.classList.add('recording');
+			lastResultIndex = -1;
 		};
-
 		recognition.onresult = (event) => {
-			const transcript = event.results[0][0].transcript;
-			console.log('[VoiceInput] 识别结果:', transcript);
+			const cursorPosition = textarea.selectionStart;
+			let newPosition, transcript;
+			if (isContinuous) {
+				// 持续识别模式：只处理新增的结果
+				let newTranscript = '', latestResultIndex = lastResultIndex;
+				for (let i = lastResultIndex + 1; i < event.results.length; i++) {
+					if (event.results[i].isFinal) {
+						newTranscript += event.results[i][0].transcript;
+						latestResultIndex = i;
+					}
+					else {
+						break;
+					}
+				}
+				console.log('[VoiceInput] 新增识别结果:', newTranscript);
+				lastResultIndex = latestResultIndex;
+				transcript = newTranscript;
+			}
+			// 单次识别模式：只取第一个结果
+			else {
+				transcript = event.results[0][0].transcript;
+				console.log('[VoiceInput] 单次识别结果:', transcript);
+			}
 
 			// 在光标位置插入识别的文本
 			const before = textarea.value.substring(0, cursorPosition);
 			const after = textarea.value.substring(cursorPosition);
 			textarea.value = before + transcript + after;
+			newPosition = cursorPosition + transcript.length;
 
 			// 更新光标位置
-			const newPosition = cursorPosition + transcript.length;
 			textarea.setSelectionRange(newPosition, newPosition);
-
 			// 触发 input 事件以自动调整高度
 			textarea.dispatchEvent(new Event('input'));
-
 			// 聚焦回 textarea
 			textarea.focus();
 		};
-
 		recognition.onerror = (event) => {
 			console.error('[VoiceInput] 语音识别错误:', event.error);
 			if (event.error === 'no-speech') {
@@ -237,7 +300,6 @@
 				alert('语音识别失败: ' + event.error);
 			}
 		};
-
 		recognition.onend = () => {
 			console.log('[VoiceInput] 语音识别结束');
 			config.isRecording = false;
