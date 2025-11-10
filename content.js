@@ -259,4 +259,14 @@
 	else {
 		renderMarkdown();
 	}
+
+	// 监听主题变化（从其他页面同步）
+	chrome.storage.onChanged.addListener((changes, namespace) => {
+		if (namespace === 'local' && changes.theme) {
+			const newTheme = changes.theme.newValue;
+			document.body.setAttribute('theme', newTheme);
+			updateThemeIcon(newTheme);
+			console.log('[CCExtension] 主题已从其他页面同步为:', newTheme);
+		}
+	});
 })();

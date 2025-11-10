@@ -1,0 +1,16 @@
+/* 公共主题变量定义 - 亮色和暗色主题 */
+
+:root,
+body[theme="light"] {
+	--front-color: rgba(19, 17, 36, 1.0);
+	--back-color: rgba(226, 225, 228, 1.0);
+	--emphasize-color: rgba(36, 134, 185, 1.0);
+	--background-color: rgba(31, 32, 64, 1.0);
+}
+
+body[theme="dark"] {
+	--back-color: rgba(29, 30, 27, 1.0);
+	--front-color: rgba(234, 238, 219, 1.0);
+	--emphasize-color: rgba(88, 178, 220, 1.0);
+	--menu-color: rgba(15, 15, 18, 1.0);
+}

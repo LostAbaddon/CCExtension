@@ -11,6 +11,7 @@ const stopReminderToggle = document.getElementById('stopReminderToggle');
 const stopReminderDelay = document.getElementById('stopReminderDelay');
 const saveBtn = document.getElementById('saveBtn');
 const reconnectBtn = document.getElementById('reconnectBtn');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
 
 // 从 CCCore 获取 stop-reminder 配置
 async function fetchStopReminderConfig() {
@@ -126,14 +127,78 @@ function reconnect() {
 	});
 }
 
+// 检测并设置主题
+function detectAndSetTheme() {
+	chrome.storage.local.get(['theme'], (result) => {
+		let theme = result.theme;
+
+		// 如果没有用户设置，则根据系统偏好判断
+		if (!theme) {
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			theme = prefersDark ? 'dark' : 'light';
+		}
+
+		document.body.setAttribute('theme', theme);
+		updateThemeIcon(theme);
+		console.log('[CCExtension Settings] 主题设置为:', theme);
+	});
+}
+
+// 更新主题图标显示
+function updateThemeIcon(theme) {
+	if (!themeToggleBtn) return;
+
+	const sunIcon = themeToggleBtn.querySelector('.sun-icon');
+	const moonIcon = themeToggleBtn.querySelector('.moon-icon');
+
+	if (theme === 'dark') {
+		// 暗色模式显示太阳图标（点击后切换到亮色）
+		sunIcon.style.display = 'block';
+		moonIcon.style.display = 'none';
+	}
+	else {
+		// 亮色模式显示月亮图标（点击后切换到暗色）
+		sunIcon.style.display = 'none';
+		moonIcon.style.display = 'block';
+	}
+}
+
+// 切换主题
+function toggleTheme() {
+	const currentTheme = document.body.getAttribute('theme');
+	const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+	document.body.setAttribute('theme', newTheme);
+	updateThemeIcon(newTheme);
+
+	// 保存用户设置
+	chrome.storage.local.set({ theme: newTheme });
+
+	console.log('[CCExtension Settings] 主题切换为:', newTheme);
+}
+
 // 事件监听
 saveBtn.addEventListener('click', saveSettings);
 reconnectBtn.addEventListener('click', reconnect);
+if (themeToggleBtn) {
+	themeToggleBtn.addEventListener('click', toggleTheme);
+}
 
 // 初始化
 loadSettings();
 updateConnectionStatus();
 updateCurrentTab();
+detectAndSetTheme();
 
 // 定期更新连接状态
 setInterval(updateConnectionStatus, 5000);
+
+// 监听主题变化（从其他页面同步）
+chrome.storage.onChanged.addListener((changes, namespace) => {
+	if (namespace === 'local' && changes.theme) {
+		const newTheme = changes.theme.newValue;
+		document.body.setAttribute('theme', newTheme);
+		updateThemeIcon(newTheme);
+		console.log('[CCExtension Settings] 主题已从其他页面同步为:', newTheme);
+	}
+});

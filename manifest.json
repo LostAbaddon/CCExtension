@@ -44,6 +44,7 @@
     {
       "resources": [
         "src/page-tracker.js",
+        "style/theme.css",
         "style/main.css",
         "pages/settings.html"
       ],
