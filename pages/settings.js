@@ -11,6 +11,7 @@ const stopReminderToggle = document.getElementById('stopReminderToggle');
 const stopReminderDelay = document.getElementById('stopReminderDelay');
 const saveBtn = document.getElementById('saveBtn');
 const reconnectBtn = document.getElementById('reconnectBtn');
+const remindersList = document.getElementById('remindersList');
 
 // 从 CCCore 获取 stop-reminder 配置
 async function fetchStopReminderConfig() {
@@ -130,11 +131,145 @@ function reconnect() {
 saveBtn.addEventListener('click', saveSettings);
 reconnectBtn.addEventListener('click', reconnect);
 
+// 加载提醒列表
+async function loadRemindersList() {
+	remindersList.innerHTML = '<div class="loading">加载中...</div>';
+
+	try {
+		const response = await fetch('http://localhost:3579/api/reminders');
+		const data = await response.json();
+
+		if (data?.ok && data?.data?.reminders) {
+			renderRemindersList(data.data.reminders);
+		}
+		else {
+			showRemindersError('无法获取提醒列表');
+		}
+	}
+	catch (error) {
+		console.error('[Settings] 获取提醒列表失败:', error);
+		showRemindersError('无法加载提醒列表，请确保 CCCore 正在运行');
+	}
+}
+
+// 渲染提醒列表
+function renderRemindersList(reminders) {
+	if (!reminders || reminders.length === 0) {
+		remindersList.innerHTML = `
+			<div class="empty-state">
+				<div class="empty-text">📭 暂无活跃提醒</div>
+			</div>
+		`;
+		return;
+	}
+
+	remindersList.innerHTML = reminders.map(reminder => {
+		const triggerDate = new Date(reminder.triggerTime);
+		const now = Date.now();
+		const timeLeft = reminder.triggerTime - now;
+
+		let timeLeftStr = '';
+		if (timeLeft > 0) {
+			const days = Math.floor(timeLeft / (24 * 60 * 60 * 1000));
+			const hours = Math.floor((timeLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+			const minutes = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+			const seconds = Math.floor((timeLeft % (60 * 1000)) / 1000);
+
+			if (days > 0) {
+				timeLeftStr = `${days}天 ${hours}小时`;
+			}
+			else if (hours > 0) {
+				timeLeftStr = `${hours}小时 ${minutes}分钟`;
+			}
+			else if (minutes > 0) {
+				timeLeftStr = `${minutes}分 ${seconds}秒`;
+			}
+			else {
+				timeLeftStr = `${seconds}秒`;
+			}
+		}
+		else {
+			timeLeftStr = '已过期';
+		}
+
+		return `
+			<div class="reminder-item">
+				<div class="reminder-info">
+					<div class="reminder-title">${escapeHtml(reminder.title)}</div>
+					<div class="reminder-message">${escapeHtml(reminder.message)}</div>
+					<div class="reminder-meta">
+						<div class="reminder-meta-item">
+							🕒 ${triggerDate.toLocaleString()}
+						</div>
+						<div class="reminder-meta-item">
+							⏱ 剩余：${timeLeftStr}
+						</div>
+					</div>
+				</div>
+				<div class="reminder-actions">
+					<button class="btn-cancel" onclick="cancelReminder('${escapeHtml(reminder.id)}', '${escapeHtml(reminder.title)}')">
+						删除
+					</button>
+				</div>
+			</div>
+		`;
+	}).join('');
+}
+
+// 显示提醒列表错误信息
+function showRemindersError(message) {
+	remindersList.innerHTML = `
+		<div class="empty-state">
+			<div class="empty-text">⚠️ ${escapeHtml(message)}</div>
+		</div>
+	`;
+}
+
+// 取消提醒
+async function cancelReminder(id, title) {
+	if (!confirm(`确定要删除提醒"${title}"吗？`)) {
+		return;
+	}
+
+	try {
+		const response = await fetch(`http://localhost:3579/api/reminder/${encodeURIComponent(id)}`, {
+			method: 'DELETE',
+		});
+		const data = await response.json();
+
+		if (data?.ok) {
+			console.log('[Settings] 提醒已删除:', id);
+			loadRemindersList();
+		}
+		else {
+			alert(`删除失败: ${data?.error || '未知错误'}`);
+		}
+	}
+	catch (error) {
+		console.error('[Settings] 删除提醒失败:', error);
+		alert('删除提醒失败，请重试');
+	}
+}
+
+// HTML 转义
+function escapeHtml(text) {
+	const map = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#039;',
+	};
+	return text.replace(/[&<>"']/g, m => map[m]);
+}
+
 // 初始化
 loadSettings();
 updateConnectionStatus();
 updateCurrentTab();
+loadRemindersList();
 ThemeToggle.init();
 
-// 定期更新连接状态
+// 定期更新连接状态和提醒列表
 setInterval(updateConnectionStatus, 5000);
+setInterval(loadRemindersList, 10000);

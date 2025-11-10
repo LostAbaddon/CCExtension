@@ -243,6 +243,7 @@ button.secondary:active {
 	padding-top: 15px;
 	border-top: 1px solid var(--border-color);
 	transition: border-top-color 0.3s;
+	text-align: center;
 }
 
 /* 自定义主题切换按钮样式（覆盖默认样式）*/
@@ -263,4 +264,107 @@ button.secondary:active {
 
 #theme-toggle-btn:not(.menu-item):hover svg {
 	color: var(--back-color);
+}
+
+/* 提醒列表样式 */
+.reminders-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 10px 0;
+}
+
+.reminder-item {
+	background: var(--container-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	padding: 12px;
+	display: flex;
+	justify-content: space-between;
+	align-items: start;
+	transition: all 0.3s ease;
+}
+
+.reminder-item:hover {
+	border-color: var(--emphasize-color);
+	box-shadow: 0 2px 8px var(--box-shadow);
+}
+
+.reminder-info {
+	flex: 1;
+}
+
+.reminder-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--front-color);
+	margin-bottom: 4px;
+	transition: color 0.3s;
+}
+
+.reminder-message {
+	font-size: 12px;
+	color: var(--text-secondary);
+	margin-bottom: 6px;
+	transition: color 0.3s;
+}
+
+.reminder-meta {
+	display: flex;
+	gap: 12px;
+	font-size: 11px;
+	color: var(--text-tertiary);
+	transition: color 0.3s;
+}
+
+.reminder-meta-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.reminder-actions {
+	display: flex;
+	gap: 6px;
+	margin-left: 10px;
+}
+
+.btn-cancel {
+	padding: 4px 10px;
+	background: #f44336;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 11px;
+	transition: all 0.3s ease;
+	margin: 0;
+}
+
+.btn-cancel:hover {
+	background: #d32f2f;
+}
+
+.empty-state {
+	text-align: center;
+	padding: 30px 15px;
+	color: var(--text-secondary);
+	transition: color 0.3s;
+}
+
+.empty-icon {
+	font-size: 36px;
+	margin-bottom: 8px;
+}
+
+.empty-text {
+	font-size: 13px;
+}
+
+.loading {
+	text-align: center;
+	padding: 15px;
+	color: var(--text-secondary);
+	font-size: 13px;
+	transition: color 0.3s;
 }

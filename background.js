@@ -310,19 +310,21 @@ async function showNotification(id, title, message, delay) {
 			}).then(() => {
 				chrome.action.openPopup();
 			}).catch(err => {
-				console.error('显示 Popup 提醒失败\n', err);
+				console.error(`[Claude Code Popup] 提醒失败\n`, err);
 			}).finally(() => {
 				chrome.action.setPopup({ popup: `pages/popup.html` });
 			});
 		});
 
-		console.log(`[Claude Code Extension] 显示通知: ${id}`);
+		console.log(`[Claude Code Notification] 显示通知: ${id}`);
 		chrome.notifications.create(id, {
 			type: 'basic',
 			iconUrl: 'icons/icon-128.png',
 			title: title,
 			message: message,
 			requireInteraction: true,
+		}).catch(err => {
+			console.error(`[Claude Code Notification] 提醒失败\n`, err);
 		});
 	}, delay);
 	localReminderTimers[id] = timer;
