@@ -103,6 +103,7 @@ h2 {
 }
 
 .section {
+	position: relative;
 	margin-bottom: 15px;
 	padding: 0px 15px;
 	border: 1px solid var(--border-color);
@@ -244,6 +245,12 @@ button.secondary:active {
 	border-top: 1px solid var(--border-color);
 	transition: border-top-color 0.3s;
 	text-align: center;
+}
+
+#reconnectBtn {
+	position: absolute;
+	top: 10px;
+	right: 0px;
 }
 
 /* 自定义主题切换按钮样式（覆盖默认样式）*/

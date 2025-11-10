@@ -17,7 +17,7 @@
 </div>
 
 <div class="container">
-	<h1>CCExtension 设置</h1>
+	<h1>Claudius 设置</h1>
 
 	<div id="status" class="status disconnected">
 		<span>未连接到 CCCore</span>
@@ -26,6 +26,7 @@
 	<!-- 连接信息 -->
 	<div class="section">
 		<h2>连接信息</h2>
+		<button id="reconnectBtn">重新连接</button>
 		<div class="setting-item">
 			<span class="setting-label">连接状态</span>
 			<span id="connectionStatus" class="info-value">正在连接...</span>
@@ -33,21 +34,6 @@
 		<div class="setting-item">
 			<span class="setting-label">当前标签页</span>
 			<span id="currentTab" class="info-value">获取中...</span>
-		</div>
-	</div>
-
-	<!-- 通知设置 -->
-	<div class="section">
-		<h2>通知设置</h2>
-		<div class="setting-item">
-			<div>
-				<div class="setting-label">使用浏览器通知</div>
-				<div class="setting-description">启用：使用 Chrome 通知；禁用：使用系统原生通知</div>
-			</div>
-			<label class="toggle-switch">
-				<input type="checkbox" id="notificationToggle" />
-				<span class="toggle-slider"></span>
-			</label>
 		</div>
 	</div>
 
@@ -76,6 +62,21 @@
 		</div>
 	</div>
 
+	<!-- 通知设置 -->
+	<div class="section">
+		<h2>通知设置</h2>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">使用浏览器通知</div>
+				<div class="setting-description">启用：使用 Chrome 通知；禁用：使用系统原生通知</div>
+			</div>
+			<label class="toggle-switch">
+				<input type="checkbox" id="notificationToggle" />
+				<span class="toggle-slider"></span>
+			</label>
+		</div>
+	</div>
+
 	<!-- 活跃提醒 -->
 	<div class="section">
 		<h2>活跃提醒</h2>
@@ -87,7 +88,7 @@
 	<!-- 操作按钮 -->
 	<div class="button-group">
 		<button id="saveBtn" class="secondary">保存设置</button>
-		<button id="reconnectBtn">重新连接</button>
+		<!-- <button id="reconnectBtn">重新连接</button> -->
 	</div>
 </div>
 
