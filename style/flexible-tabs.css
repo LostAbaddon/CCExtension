@@ -16,7 +16,7 @@
 	height: 100%;
 	overflow: hidden;
 	position: relative;
-	border-bottom: 1px solid var(--border-color, #e0e0e0);
+	border-bottom: 1px solid var(--emphasize-color);
 }
 
 /* 滚动容器 */
@@ -89,7 +89,7 @@
 	flex-shrink: 0;
 	width: 16px;
 	height: 16px;
-	color: var(--text-secondary, #666);
+	color: var(--emphasize-color);
 }
 
 .flexible-tab-content span {
@@ -97,19 +97,14 @@
 	min-width: 0;
 	font-size: 14px;
 	line-height: 1.4;
-	color: var(--text-primary, #333);
+	color: var(--emphasize-color);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.flexible-tab.active .flexible-tab-content svg {
-	color: var(--primary-color, #1976d2);
-}
-
 .flexible-tab.active .flexible-tab-content span {
 	font-weight: 500;
-	color: var(--primary-color, #1976d2);
 }
 
 /* 删除按钮 */
@@ -132,15 +127,10 @@
 .flexible-tab-delete svg {
 	width: 12px;
 	height: 12px;
-	color: var(--text-secondary, #666);
 }
 
 .flexible-tab-delete:hover {
 	background: rgba(0, 0, 0, 0.1);
-}
-
-.flexible-tab-delete:hover svg {
-	color: var(--text-primary, #333);
 }
 
 /* 添加按钮 */
@@ -166,18 +156,10 @@
 .flexible-tabs-add-btn svg {
 	width: 16px;
 	height: 16px;
-	color: var(--text-secondary, #666);
-}
-
-.flexible-tabs-add-btn:hover svg {
-	color: var(--primary-color, #1976d2);
+	color: var(--emphasize-color);
 }
 
 /* 暗色主题适配 */
-[theme="dark"] .flexible-tabs-wrapper {
-	border-bottom-color: var(--border-color, #404040);
-}
-
 [theme="dark"] .flexible-tab {
 	background: var(--bg-color, #2a2a2a);
 	border-right-color: var(--border-color, #404040);
@@ -192,32 +174,8 @@
 	border-bottom-color: var(--primary-color, #64b5f6);
 }
 
-[theme="dark"] .flexible-tab-content svg {
-	color: var(--text-secondary, #999);
-}
-
-[theme="dark"] .flexible-tab-content span {
-	color: var(--text-primary, #e0e0e0);
-}
-
-[theme="dark"] .flexible-tab.active .flexible-tab-content svg {
-	color: var(--primary-color, #64b5f6);
-}
-
-[theme="dark"] .flexible-tab.active .flexible-tab-content span {
-	color: var(--primary-color, #64b5f6);
-}
-
-[theme="dark"] .flexible-tab-delete svg {
-	color: var(--text-secondary, #999);
-}
-
 [theme="dark"] .flexible-tab-delete:hover {
 	background: rgba(255, 255, 255, 0.1);
-}
-
-[theme="dark"] .flexible-tab-delete:hover svg {
-	color: var(--text-primary, #e0e0e0);
 }
 
 [theme="dark"] .flexible-tabs-wrapper.scrollable::-webkit-scrollbar-track {
@@ -240,12 +198,4 @@
 
 [theme="dark"] .flexible-tabs-add-btn:hover {
 	background: var(--bg-hover, #353535);
-}
-
-[theme="dark"] .flexible-tabs-add-btn svg {
-	color: var(--text-secondary, #999);
-}
-
-[theme="dark"] .flexible-tabs-add-btn:hover svg {
-	color: var(--primary-color, #64b5f6);
 }

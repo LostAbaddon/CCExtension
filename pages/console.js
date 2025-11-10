@@ -2,11 +2,38 @@
  * CCExtension Console 页面脚本
  */
 
+let CurrentCCTab = null;
+let CurrentCCSid = null;
+
 // 初始化主题切换
 ThemeToggle.init();
 
 // 设置按钮点击事件
 document.addEventListener('DOMContentLoaded', () => {
+	// 监听输入框提交事件
+	const mainInput = document.getElementById('main-input');
+	if (mainInput) {
+		mainInput.addEventListener('onSubmit', (event) => {
+			const message = event.detail.value;
+			if (!message) {
+				return;
+			}
+
+			console.log('[Console] 提交消息:', message);
+
+			// 这里处理消息发送逻辑
+			handleMessageSubmit(message);
+
+			// 清空输入框
+			VoiceInput.clear(mainInput);
+		});
+		// 监听输入框高度变化事件
+		mainInput.addEventListener('onHeightChange', (event) => {
+			const { newHeight } = event.detail;
+			conversation_container.style.bottom = (newHeight + 30) + 'px';
+		});
+	}
+
 	const settingsBtn = document.getElementById('settings-btn');
 	if (settingsBtn) {
 		settingsBtn.addEventListener('click', () => {
@@ -20,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		flexTab.addEventListener('onSwitch', (event) => {
 			const tabName = event.detail.tabName;
 			console.log('[Console] 切换到标签:', tabName);
+			CurrentCCTab = tabName;
 
 			// 根据 tabName 更新内容区域
 			const contentArea = document.getElementById('demo-content');
@@ -34,13 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			// 动态添加一个新标签
 			const newTabName = `tab_${Date.now()}`;
-			const newTabContent = `
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="12" cy="12" r="10"></circle>
-					<path d="M12 8v8m-4-4h8"></path>
-				</svg>
-				<span>新标签</span>
-			`;
+			const newTabContent = `<span>新 Claude Code 终端</span>`;
 
 			FlexibleTabs.addTab(flexTab, newTabName, newTabContent);
 
@@ -113,4 +135,33 @@ function updateContent(contentArea, tabName) {
 	};
 
 	contentArea.innerHTML = contentMap[tabName] || '<p>内容未找到</p>';
+}
+
+/**
+ * 处理消息提交
+ * @param {string} message - 用户输入的消息
+ */
+function handleMessageSubmit(message) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	// 创建消息元素
+	const messageElement = document.createElement('div');
+	messageElement.style.marginBottom = '12px';
+	messageElement.style.padding = '12px';
+	messageElement.style.borderRadius = '8px';
+	messageElement.style.backgroundColor = 'var(--emphasize-color)';
+	messageElement.style.color = 'var(--back-color)';
+	messageElement.textContent = message;
+
+	// 添加到对话容器
+	conversationContainer.appendChild(messageElement);
+
+	// 滚动到底部
+	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+
+	// TODO: 这里可以添加发送消息到后台的逻辑
+	// chrome.runtime.sendMessage({ type: 'sendMessage', message: message });
 }

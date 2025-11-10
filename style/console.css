@@ -122,3 +122,32 @@ body {
 .menu-item:hover svg {
 	color: var(--back-color);
 }
+
+#conversation_container {
+	position: fixed;
+	left: 20px;
+	right: 20px;
+	top: 90px;
+	bottom: 88px;
+	margin: 0px;
+	padding: 20px;
+	border-radius: 5px;
+	border: 1px solid var(--emphasize-color);
+	box-shadow: -1px -1px 1px rgba(235, 235, 245, 0.2), 1px 1px 1px rgba(11, 11, 7, 0.9);
+	overflow: auto;
+}
+[theme="light"] #conversation_container {
+	box-shadow: -1px -1px 1px rgba(245, 245, 255, 0.9), 1px 1px 1px rgba(11, 11, 7, 0.2);
+}
+
+/* 底部输入区域 */
+#input-area-wrapper {
+	position: fixed;
+	left: 20px;
+	right: 20px;
+	bottom: 20px;
+	max-height: 180px;
+	padding: 0px;
+	z-index: 100;
+	transition: all 0.3s ease;
+}

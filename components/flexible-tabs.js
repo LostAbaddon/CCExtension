@@ -71,7 +71,6 @@
 					bubbles: true,
 				});
 				flexTabElement.dispatchEvent(event);
-				console.log('[FlexibleTabs] 触发 onDel 事件:', name);
 			});
 			tabWrapper.appendChild(deleteBtn);
 
@@ -99,7 +98,6 @@
 					bubbles: true,
 				});
 				flexTabElement.dispatchEvent(event);
-				console.log('[FlexibleTabs] 触发 onAdd 事件');
 			});
 			// 将添加按钮放到 scroll 容器内的最后
 			scroll.appendChild(addButton);
@@ -141,8 +139,6 @@
 				wrapper.scrollLeft += e.deltaX;
 			}
 		}, { passive: false });
-
-		console.log('[FlexibleTabs] 初始化完成:', flexTabElement);
 	}
 
 	/**
@@ -230,8 +226,6 @@
 			bubbles: true,
 		});
 		flexTabElement.dispatchEvent(event);
-
-		console.log('[FlexibleTabs] 切换到 tab:', tabName);
 	}
 
 	/**
@@ -289,7 +283,6 @@
 				bubbles: true,
 			});
 			flexTabElement.dispatchEvent(event);
-			console.log('[FlexibleTabs] 触发 onDel 事件:', name);
 		});
 		tabWrapper.appendChild(deleteBtn);
 
@@ -308,8 +301,6 @@
 
 		// 更新宽度
 		updateTabWidths(flexTabElement);
-
-		console.log('[FlexibleTabs] 添加 tab:', name);
 	}
 
 	/**
@@ -346,7 +337,6 @@
 		// 更新宽度
 		updateTabWidths(flexTabElement);
 
-		console.log('[FlexibleTabs] 删除 tab:', name);
 		return true;
 	}
 

@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="../style/theme.css" />
 <link rel="stylesheet" href="../style/theme-toggle.css" />
 <link rel="stylesheet" href="../style/flexible-tabs.css" />
+<link rel="stylesheet" href="../style/voice-input.css" />
 <link rel="stylesheet" href="../style/console.css" />
 </head>
 <body>
@@ -34,59 +35,22 @@
 	</div>
 </div>
 
-<!-- Claude Code 实例区 -->
+<!-- Claude Code 实例选择区 -->
 <div class="claudius_container">
-	<flex_tab max_tab_width="120" min_tab_width="60" plusable="true" style="margin-top: 20px; width: calc(100% - 60px);">
-		<tab name="home">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-				<polyline points="9 22 9 12 15 12 15 22"></polyline>
-			</svg>
-			<span>首页</span>
-		</tab>
-		<tab name="settings">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<circle cx="12" cy="12" r="3"></circle>
-				<path d="M12 1v6m0 6v6m-6-6h6m6 0h6M4.22 4.22l4.24 4.24m7.07 7.07l4.24 4.24M19.78 4.22l-4.24 4.24m-7.07 7.07l-4.24 4.24"></path>
-			</svg>
-			<span>设置</span>
-		</tab>
-		<tab name="docs">
-			<span>文档</span>
-		</tab>
-		<tab name="about">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<circle cx="12" cy="12" r="10"></circle>
-				<line x1="12" y1="16" x2="12" y2="12"></line>
-				<line x1="12" y1="8" x2="12.01" y2="8"></line>
-			</svg>
-			<span>关于我们</span>
-		</tab>
-		<tab name="help">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<circle cx="12" cy="12" r="10"></circle>
-				<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-				<line x1="12" y1="17" x2="12.01" y2="17"></line>
-			</svg>
-			<span>帮助中心</span>
-		</tab>
-		<tab name="stats">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<line x1="12" y1="20" x2="12" y2="10"></line>
-				<line x1="18" y1="20" x2="18" y2="4"></line>
-				<line x1="6" y1="20" x2="6" y2="16"></line>
-			</svg>
-			<span>数据统计</span>
-		</tab>
-	</flex_tab>
+	<flex_tab max_tab_width="200" min_tab_width="60" plusable="true" style="margin-top: 20px; width: calc(100% - 60px);"></flex_tab>
+</div>
 
-	<div id="demo-content" style="margin: 20px; padding: 20px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; min-height: 200px;">
-		<p style="color: var(--text-secondary, #666);">点击上方标签查看内容</p>
-	</div>
+<!-- Claude Code 实例区 -->
+<div id="conversation_container">What The Fuck!</div>
+
+<!-- 底部输入组件 -->
+<div id="input-area-wrapper">
+	<voice_input id="main-input" placeholder="输入消息... (Ctrl+Enter 发送)" max_height="150" submit_width="100"></voice_input>
 </div>
 
 <script src="../components/theme-toggle.js"></script>
 <script src="../components/flexible-tabs.js"></script>
+<script src="../components/voice-input.js"></script>
 <script src="console.js"></script>
 </body>
 </html>
