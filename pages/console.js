@@ -17,6 +17,7 @@ function getTabState(tabName) {
 		tabStates[tabName] = {
 			workDir: null,
 			sessionId: null,
+			messages: [], // 存储未渲染的消息，格式: [{type: 'user'|'assistant'|'error', content: string}]
 		};
 	}
 	return tabStates[tabName];
@@ -73,13 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		flexTab.addEventListener('onSwitch', (event) => {
 			const tabName = event.detail.tabName;
 			console.log('[Console] 切换到标签:', tabName);
+
+			// 保存当前 tab 的内容到缓存（如果有的话）
+			if (CurrentCCTab) {
+				saveCurrentTabContent(CurrentCCTab);
+			}
+
 			CurrentCCTab = tabName;
 
-			// 根据 tabName 更新内容区域
-			const contentArea = document.getElementById('demo-content');
-			if (contentArea) {
-				updateContent(contentArea, tabName);
-			}
+			// 恢复新 tab 的内容
+			restoreTabContent(tabName);
 		});
 		// 监听添加按钮点击事件
 		flexTab.addEventListener('onAdd', async () => {
@@ -121,82 +125,258 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 根据标签名更新内容区域
- * @param {HTMLElement} contentArea - 内容区域元素
- * @param {string} tabName - 标签名
+ * 保存当前 tab 的内容到缓存
+ * @param {string} tabName - Tab 名称
  */
-function updateContent(contentArea, tabName) {
-	const contentMap = {
-		home: `
-			<h3>首页</h3>
-			<p>这是首页的内容区域。</p>
-			<p>可以在这里显示任何内容,包括文本、图片、表格等。</p>
-		`,
-		settings: `
-			<h3>设置</h3>
-			<p>这是设置页面的内容。</p>
-			<ul>
-				<li>选项 1</li>
-				<li>选项 2</li>
-				<li>选项 3</li>
-			</ul>
-		`,
-		docs: `
-			<h3>文档</h3>
-			<p>这是文档页面。</p>
-			<p>演示了标签可以不带图标的情况。</p>
-		`,
-		about: `
-			<h3>关于我们</h3>
-			<p>CCExtension 是一个强大的 Chrome 扩展。</p>
-			<p>版本: 1.0.0</p>
-		`,
-		help: `
-			<h3>帮助中心</h3>
-			<p>需要帮助?查看我们的文档和教程。</p>
-			<ol>
-				<li>快速入门</li>
-				<li>常见问题</li>
-				<li>联系支持</li>
-			</ol>
-		`,
-		stats: `
-			<h3>数据统计</h3>
-			<p>查看您的使用数据和统计信息。</p>
-			<p>这是第6个标签,用于演示当标签数量增多时的自适应效果。</p>
-		`,
-	};
+function saveCurrentTabContent(tabName) {
+	// 注意：这里不需要保存，因为消息在 showUserMessage 等函数中已经保存到 state.messages 了
+	// 这个函数保留用于未来可能的扩展
+	console.log('[Console] 保存 Tab 内容:', tabName);
+}
 
-	contentArea.innerHTML = contentMap[tabName] || '<p>内容未找到</p>';
+/**
+ * 恢复 tab 的内容
+ * @param {string} tabName - Tab 名称
+ */
+function restoreTabContent(tabName) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	const state = getTabState(tabName);
+
+	// 清空当前显示的内容
+	conversationContainer.innerHTML = '';
+
+	// 恢复该 tab 的所有消息
+	if (state.messages && state.messages.length > 0) {
+		state.messages.forEach(msg => {
+			const messageElement = document.createElement('div');
+			messageElement.style.marginBottom = '12px';
+			messageElement.style.padding = '12px';
+			messageElement.style.borderRadius = '8px';
+
+			if (msg.type === 'user') {
+				messageElement.style.backgroundColor = 'var(--emphasize-color)';
+				messageElement.style.color = 'var(--back-color)';
+			}
+			else if (msg.type === 'error') {
+				messageElement.style.backgroundColor = '#ff4444';
+				messageElement.style.color = '#ffffff';
+			}
+			else {
+				messageElement.style.backgroundColor = 'var(--border-color)';
+				messageElement.style.color = 'var(--text-color)';
+			}
+
+			// 使用 MarkUp 渲染内容
+			const renderedContent = MarkUp.parse(msg.content);
+			messageElement.innerHTML = renderedContent;
+
+			conversationContainer.appendChild(messageElement);
+		});
+
+		// 滚动到底部
+		conversationContainer.scrollTop = conversationContainer.scrollHeight;
+	}
+
+	console.log('[Console] 恢复 Tab 内容:', tabName, '消息数量:', state.messages.length);
 }
 
 /**
  * 处理消息提交
  * @param {string} message - 用户输入的消息
  */
-function handleMessageSubmit(message) {
+async function handleMessageSubmit(message) {
+	// 获取当前 Tab 的状态
+	if (!CurrentCCTab) {
+		console.error('[Console] 没有选中的 Tab');
+		return;
+	}
+	const state = getTabState(CurrentCCTab);
+	if (!state.workDir) {
+		console.error('[Console] 当前 Tab 没有设置 workDir');
+		return;
+	}
+
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) {
 		return;
 	}
 
-	// 创建消息元素
+	showUserMessage(message);
+
+	// 检查是否是清除命令
+	const clearCommands = ['/clear', '/new', '/reset'];
+	if (clearCommands.includes(message.trim())) {
+		// 发送清除会话请求
+		await sendClearRequest(CurrentCCTab);
+		// 清空对话容器
+		conversationContainer.innerHTML = '';
+		// 重置 sessionId 和消息缓存
+		state.sessionId = null;
+		state.messages = [];
+		return;
+	}
+
+	// 提交消息到 CCCore
+	await sendMessageToCore(CurrentCCTab, message, state);
+}
+
+/**
+ * 发送消息到 CCCore
+ * @param {string} message - 用户消息
+ * @param {Object} state - Tab 状态
+ */
+async function sendMessageToCore(tabId, message, state) {
+	if (!tabId) return;
+
+	try {
+		const response = await fetch(`http://localhost:3579/claudius/${tabId}/submit`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				workDir: state.workDir,
+				prompt: message,
+			}),
+		});
+
+		const result = await response.json();
+		if (!result.ok) {
+			throw new Error(result.error || '提交失败');
+		}
+		console.log('[Console] 消息提交成功:', result);
+
+		// 显示 AI 回复
+		if (result.reply) {
+			showAssistantMessage(result.reply);
+		}
+	}
+	catch (error) {
+		console.error('[Console] 消息提交失败:', error);
+		showErrorMessage('消息提交失败: ' + error.message);
+	}
+}
+/**
+ * 发送清除会话请求
+ * @param {string} tabId - 会话 ID
+ */
+async function sendClearRequest(tabId) {
+	if (!tabId) return;
+
+	try {
+		const response = await fetch(`http://localhost:3579/claudius/${tabId}/clear`, {
+			method: 'POST',
+		});
+
+		const result = await response.json();
+		console.log('[Console] 会话清除成功:', result);
+	}
+	catch (error) {
+		console.error('[Console] 会话清除失败:', error);
+	}
+}
+
+/**
+ * 显示用户输入
+ * @param {string} message - AI 回复内容
+ */
+function showUserMessage(message) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	// 保存未渲染的消息到当前 tab 的状态中
+	if (CurrentCCTab) {
+		const state = getTabState(CurrentCCTab);
+		state.messages.push({
+			type: 'user',
+			content: message
+		});
+	}
+
 	const messageElement = document.createElement('div');
 	messageElement.style.marginBottom = '12px';
 	messageElement.style.padding = '12px';
 	messageElement.style.borderRadius = '8px';
 	messageElement.style.backgroundColor = 'var(--emphasize-color)';
 	messageElement.style.color = 'var(--back-color)';
-	messageElement.textContent = message;
+
+	// 使用 MarkUp 渲染消息内容
+	const renderedContent = MarkUp.parse(message);
+	messageElement.innerHTML = renderedContent;
 
 	// 添加到对话容器
 	conversationContainer.appendChild(messageElement);
-
 	// 滚动到底部
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+}
+/**
+ * 显示 AI 回复
+ * @param {string} reply - AI 回复内容
+ */
+function showAssistantMessage(reply) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
 
-	// TODO: 这里可以添加发送消息到后台的逻辑
-	// chrome.runtime.sendMessage({ type: 'sendMessage', message: message });
+	// 保存未渲染的消息到当前 tab 的状态中
+	if (CurrentCCTab) {
+		const state = getTabState(CurrentCCTab);
+		state.messages.push({
+			type: 'assistant',
+			content: reply
+		});
+	}
+
+	const messageElement = document.createElement('div');
+	messageElement.style.marginBottom = '12px';
+	messageElement.style.padding = '12px';
+	messageElement.style.borderRadius = '8px';
+	messageElement.style.backgroundColor = 'var(--border-color)';
+	messageElement.style.color = 'var(--text-color)';
+
+	// 使用 MarkUp 渲染消息内容
+	const renderedContent = MarkUp.parse(reply);
+	messageElement.innerHTML = renderedContent;
+
+	conversationContainer.appendChild(messageElement);
+	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+}
+/**
+ * 显示错误消息
+ * @param {string} error - 错误信息
+ */
+function showErrorMessage(error) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	// 保存未渲染的消息到当前 tab 的状态中
+	if (CurrentCCTab) {
+		const state = getTabState(CurrentCCTab);
+		state.messages.push({
+			type: 'error',
+			content: error
+		});
+	}
+
+	const messageElement = document.createElement('div');
+	messageElement.style.marginBottom = '12px';
+	messageElement.style.padding = '12px';
+	messageElement.style.borderRadius = '8px';
+	messageElement.style.backgroundColor = '#ff4444';
+	messageElement.style.color = '#ffffff';
+	messageElement.textContent = error;
+
+	conversationContainer.appendChild(messageElement);
+	conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
 
 /**
