@@ -140,6 +140,44 @@ body {
 	box-shadow: -1px -1px 1px rgba(245, 245, 255, 0.9), 1px 1px 1px rgba(11, 11, 7, 0.2);
 }
 
+#conversation_container .chat-item {
+	margin-bottom: 12px;
+	padding: 12px;
+	border-radius: 0px;
+}
+#conversation_container .chat-item.user-chat {
+	background-color: black;
+	color: rgba(235, 235, 235, 1.0);
+	box-shadow: -1px -1px 1px rgba(235, 235, 235, 0.2), 1px 1px 1px rgba(11, 11, 11, 0.9), 2px 2px 5px rgba(127, 127, 127, 0.6);
+}
+[theme="light"] #conversation_container .chat-item.user-chat {
+	background-color: white;
+	color: rgba(8, 8, 8, 1.0);
+	box-shadow: 1px 1px 1px rgba(235, 235, 235, 0.9), -1px -1px 1px rgba(11, 11, 11, 0.2), 2px 2px 5px rgba(127, 127, 127, 0.6);
+}
+#conversation_container .chat-item.assistant-chat {
+	background-color: var(--border-color);
+	color: var(--text-color);
+}
+#conversation_container .chat-item.error-chat {
+	background-color: #ff4444;
+	color: #ffffff;
+}
+#conversation_container .chat-item.tool-using {
+	border: 1px solid rgba(127, 127, 127, 0.6);
+}
+[theme="light"] #conversation_container .chat-item.tool-using {
+	border: 1px solid rgba(127, 127, 127, 0.6);
+}
+#conversation_container .chat-item.tool-used {
+	border: 1px solid rgba(57, 57, 57, 0.6);
+	color: rgba(127, 127, 127, 1.0);
+}
+[theme="light"] #conversation_container .chat-item.tool-used {
+	border: 1px solid rgba(175, 175, 175, 0.6);
+	color: rgba(127, 127, 127, 1.0);
+}
+
 /* 底部输入区域 */
 #input-area-wrapper {
 	position: fixed;

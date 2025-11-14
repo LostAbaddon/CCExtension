@@ -44,10 +44,11 @@
     {
       "resources": [
         "src/page-tracker.js",
+        "components/theme-toggle.js",
+        "style/main.css",
+        "style/markdown.css",
         "style/theme.css",
         "style/theme-toggle.css",
-        "style/main.css",
-        "components/theme-toggle.js",
         "pages/settings.html"
       ],
       "matches": ["<all_urls>"]

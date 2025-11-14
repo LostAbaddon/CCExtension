@@ -241,6 +241,7 @@
 		const styles = [
 			chrome.runtime.getURL('style/main.css'),
 			chrome.runtime.getURL('style/theme-toggle.css'),
+			chrome.runtime.getURL('style/markdown.css'),
 		];
 
 		styles.forEach(styleUrl => {

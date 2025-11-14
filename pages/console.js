@@ -3,7 +3,9 @@
  */
 
 let CurrentCCTab = null;
-let CurrentCCSid = null;
+const Conversations = {};
+const PreConversations = [];
+const ToolUsages = {};
 
 // Tab 状态管理对象，以 tab 的 name 为 key
 const tabStates = {};
@@ -75,13 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const tabName = event.detail.tabName;
 			console.log('[Console] 切换到标签:', tabName);
 
-			// 保存当前 tab 的内容到缓存（如果有的话）
-			if (CurrentCCTab) {
-				saveCurrentTabContent(CurrentCCTab);
-			}
-
 			CurrentCCTab = tabName;
-
 			// 恢复新 tab 的内容
 			restoreTabContent(tabName);
 		});
@@ -125,16 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 保存当前 tab 的内容到缓存
- * @param {string} tabName - Tab 名称
- */
-function saveCurrentTabContent(tabName) {
-	// 注意：这里不需要保存，因为消息在 showUserMessage 等函数中已经保存到 state.messages 了
-	// 这个函数保留用于未来可能的扩展
-	console.log('[Console] 保存 Tab 内容:', tabName);
-}
-
-/**
  * 恢复 tab 的内容
  * @param {string} tabName - Tab 名称
  */
@@ -152,29 +138,15 @@ function restoreTabContent(tabName) {
 	// 恢复该 tab 的所有消息
 	if (state.messages && state.messages.length > 0) {
 		state.messages.forEach(msg => {
-			const messageElement = document.createElement('div');
-			messageElement.style.marginBottom = '12px';
-			messageElement.style.padding = '12px';
-			messageElement.style.borderRadius = '8px';
-
 			if (msg.type === 'user') {
-				messageElement.style.backgroundColor = 'var(--emphasize-color)';
-				messageElement.style.color = 'var(--back-color)';
+				showUserMessage(msg.message);
+			}
+			else if (msg.type === 'ai') {
+				showAssistantMessage(msg.message);
 			}
 			else if (msg.type === 'error') {
-				messageElement.style.backgroundColor = '#ff4444';
-				messageElement.style.color = '#ffffff';
+				showErrorMessage(msg.message);
 			}
-			else {
-				messageElement.style.backgroundColor = 'var(--border-color)';
-				messageElement.style.color = 'var(--text-color)';
-			}
-
-			// 使用 MarkUp 渲染内容
-			const renderedContent = MarkUp.parse(msg.content);
-			messageElement.innerHTML = renderedContent;
-
-			conversationContainer.appendChild(messageElement);
 		});
 
 		// 滚动到底部
@@ -191,11 +163,13 @@ function restoreTabContent(tabName) {
 async function handleMessageSubmit(message) {
 	// 获取当前 Tab 的状态
 	if (!CurrentCCTab) {
+		Notification.show(null, '请先选择一个工作目录！', 'middleTop', 'error', 5000);
 		console.error('[Console] 没有选中的 Tab');
 		return;
 	}
 	const state = getTabState(CurrentCCTab);
 	if (!state.workDir) {
+		Notification.show(null, '该标签页没有选中工作目录，请关闭并重开一个新的标签页', 'middleTop', 'error', 5000);
 		console.error('[Console] 当前 Tab 没有设置 workDir');
 		return;
 	}
@@ -221,6 +195,7 @@ async function handleMessageSubmit(message) {
 	}
 
 	// 提交消息到 CCCore
+	state.messages.push({ type: 'user', message });
 	await sendMessageToCore(CurrentCCTab, message, state);
 }
 
@@ -233,6 +208,10 @@ async function sendMessageToCore(tabId, message, state) {
 	if (!tabId) return;
 
 	try {
+		if (!state.sessionId) {
+			PreConversations.push([tabId, message.replace(/\s+/g, '').replace(/\p{P}/ug, '')]);
+		}
+
 		const response = await fetch(`http://localhost:3579/claudius/${tabId}/submit`, {
 			method: 'POST',
 			headers: {
@@ -252,11 +231,15 @@ async function sendMessageToCore(tabId, message, state) {
 
 		// 显示 AI 回复
 		if (result.reply) {
+			Conversations[result.sessionId] = tabId;
+			state.sessionId = result.sessionId;
+			state.messages.push({ type: 'ai', message: result.reply });
 			showAssistantMessage(result.reply);
 		}
 	}
 	catch (error) {
 		console.error('[Console] 消息提交失败:', error);
+		state.messages.push({ type: 'error', message: error.message });
 		showErrorMessage('消息提交失败: ' + error.message);
 	}
 }
@@ -276,6 +259,7 @@ async function sendClearRequest(tabId) {
 		console.log('[Console] 会话清除成功:', result);
 	}
 	catch (error) {
+		Notification.show(null, '清除对话失败', 'middleTop', 'error', 5000);
 		console.error('[Console] 会话清除失败:', error);
 	}
 }
@@ -300,11 +284,9 @@ function showUserMessage(message) {
 	}
 
 	const messageElement = document.createElement('div');
-	messageElement.style.marginBottom = '12px';
-	messageElement.style.padding = '12px';
-	messageElement.style.borderRadius = '8px';
-	messageElement.style.backgroundColor = 'var(--emphasize-color)';
-	messageElement.style.color = 'var(--back-color)';
+	messageElement.classList.add('markdown-body');
+	messageElement.classList.add('chat-item');
+	messageElement.classList.add('user-chat');
 
 	// 使用 MarkUp 渲染消息内容
 	const renderedContent = MarkUp.parse(message);
@@ -335,11 +317,9 @@ function showAssistantMessage(reply) {
 	}
 
 	const messageElement = document.createElement('div');
-	messageElement.style.marginBottom = '12px';
-	messageElement.style.padding = '12px';
-	messageElement.style.borderRadius = '8px';
-	messageElement.style.backgroundColor = 'var(--border-color)';
-	messageElement.style.color = 'var(--text-color)';
+	messageElement.classList.add('markdown-body');
+	messageElement.classList.add('chat-item');
+	messageElement.classList.add('assistant-chat');
 
 	// 使用 MarkUp 渲染消息内容
 	const renderedContent = MarkUp.parse(reply);
@@ -368,15 +348,39 @@ function showErrorMessage(error) {
 	}
 
 	const messageElement = document.createElement('div');
-	messageElement.style.marginBottom = '12px';
-	messageElement.style.padding = '12px';
-	messageElement.style.borderRadius = '8px';
-	messageElement.style.backgroundColor = '#ff4444';
-	messageElement.style.color = '#ffffff';
+	messageElement.classList.add('chat-item');
+	messageElement.classList.add('error-chat');
 	messageElement.textContent = error;
 
 	conversationContainer.appendChild(messageElement);
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+}
+/**
+ * 显示错误消息
+ * @param {string} error - 错误信息
+ */
+function showToolUsingMessage(toolUsage) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	let name = [];
+	for (let i = 0; i < 16; i ++) {
+		name.push(Math.floor(Math.random() * 36).toString(36));
+	}
+	name = 'tool_' + name.join('');
+
+	const messageElement = document.createElement('div');
+	messageElement.classList.add('chat-item');
+	messageElement.classList.add('tool-using');
+	messageElement.setAttribute('name', name);
+	messageElement.textContent = toolUsage;
+
+	conversationContainer.appendChild(messageElement);
+	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+
+	return name;
 }
 
 /**
@@ -580,6 +584,7 @@ const showDirectoryPicker = (tabName) => new Promise(res => {
 			}
 		}
 		catch (error) {
+			Notification.show(null, '目录读取失败', 'middleTop', 'error', 5000);
 			console.error('[Console] 加载文件夹列表失败:', error);
 			listContainer.innerHTML = `
 				<div style="padding: 20px; text-align: center; color: red;">
@@ -607,4 +612,69 @@ const showDirectoryPicker = (tabName) => new Promise(res => {
 
 	// 初始加载（从 homedir 开始）
 	loadFolders(null);
+});
+
+const matchSessionIdWithTabId = (sessionId, content) => {
+	let tabId = Conversations[sessionId];
+	if (tabId) return; // 该对话已经与标签页绑定，则不再绑定
+	// 如果只有一个标签页等待与对话绑定
+	if (PreConversations.length === 1) {
+		tabId = PreConversations[0][0];
+		Conversations[sessionId] = tabId;
+		PreConversations.splice(0);
+	}
+	// 如果有不止一个标签页等待与对话绑定，则做匹配
+	else if (PreConversations.length > 1) {
+		const temp = content.replace(/\s+/g, '').replace(/\p{P}/ug, '');
+		let idx = -1;
+		PreConversations.some((item, i) => {
+			if (item[1] === temp) {
+				idx = i;
+				return true;
+			}
+		});
+		if (idx < 0) {
+			console.log('[TabSession] 没找到匹配的标签页: ' + sessionId);
+			return;
+		}
+		tabId = PreConversations[idx][0];
+		PreConversations.splice(idx, 1);
+	}
+	else {
+		console.log('[TabSession] 没有可用的标签页: ' + sessionId);
+	}
+};
+
+const updateToolUsage = (sessionId, toolName, type) => {
+	const tabId = Conversations[sessionId];
+	if (tabId !== CurrentCCTab) return; // 不是当前标签页或没有对应标签页
+
+	if (type === 'start') {
+		const toolId = showToolUsingMessage(toolName);
+		ToolUsages[toolName] = toolId;
+	}
+	else if (type === 'end') {
+		const toolId = ToolUsages[toolName];
+		if (!toolId) return;
+		delete ToolUsages[toolName];
+		const ui = document.querySelector(`#conversation_container div.chat-item.tool-using[name="${toolId}"]`);
+		if (!ui) return;
+		ui.classList.remove('tool-using');
+		ui.classList.add('tool-used');
+		ui.textContent = '✓ ' + toolName;
+	}
+};
+
+chrome.runtime.onMessage.addListener((request, sender) => {
+	console.log('[Console] 收到来自 background 的消息:', request);
+	if (request.event == 'user_input') {
+		const { sessionId, content } = request.data ?? {};
+		matchSessionIdWithTabId(sessionId, content);
+	}
+	else if (request.event == 'tool_use') {
+		const type = request.type;
+		if (!type) return;
+		const { sessionId, toolName } = request.data ?? {};
+		updateToolUsage(sessionId, toolName, type);
+	}
 });

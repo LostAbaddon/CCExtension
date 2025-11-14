@@ -209,6 +209,10 @@ async function handleRequest(action, data, messageId) {
 				result = handleToolEvent(data);
 				break;
 
+			case 'USER_INPUT_EVENT':
+				result = handleUserInputEvent(data);
+				break;
+
 			case 'STOP_REMINDER_CONFIG_UPDATE':
 				result = handleStopReminderConfigUpdate(data);
 				break;
@@ -429,14 +433,40 @@ function handleStopReminderConfigUpdate(data) {
 /**
  * 处理工具使用事件
  */
-function handleToolEvent(data) {
+async function handleToolEvent(data) {
 	const { sessionId, toolName, eventType, timestamp } = data;
 	console.log(`[Claude Code Extension] 工具事件: ${toolName} - ${eventType} (Session: ${sessionId})`);
 
-	// 可以在这里添加额外的处理逻辑,比如记录到日志或显示通知
-	// 目前只记录日志即可
+	const tabs = await findTabsByUrl('chrome-extension://mknfpdalpbjjlhkdajnaamomibdhjkdb/pages/console.html');
+	if (!tabs || !tabs.length) return;
+	await Promise.all(tabs.map(async tab => {
+		await chrome.tabs.sendMessage(tab.id, {
+			event: 'tool_use',
+			type: eventType,
+			data: { sessionId, toolName }
+		});
+	}));
 
-	return { ok: true, message: '工具事件已接收' };
+	return {ok: true, message: "已接受"}
+}
+
+/**
+ * 处理用户输入事件
+ */
+async function handleUserInputEvent(data) {
+	const { sessionId, content } = data;
+	console.log(`[Claude Code Extension] 用户输入事件: ${content} (Session: ${sessionId})`);
+
+	const tabs = await findTabsByUrl('chrome-extension://mknfpdalpbjjlhkdajnaamomibdhjkdb/pages/console.html');
+	if (!tabs || !tabs.length) return;
+	await Promise.all(tabs.map(async tab => {
+		await chrome.tabs.sendMessage(tab.id, {
+			event: 'user_input',
+			data: { sessionId, content }
+		});
+	}));
+
+	return {ok: true, message: "已接受"}
 }
 
 /**
@@ -524,6 +554,17 @@ function fetchInitialRemindersList() {
 		.catch(error => {
 			console.warn('[Claude Code Extension] 获取初始提醒列表失败:', error.message);
 		});
+}
+
+async function findTabsByUrl(urlPattern) {
+	try {
+		const tabs = await chrome.tabs.query({url: urlPattern});
+		return tabs;
+	}
+	catch (error) {
+		console.error("查询失败:", error);
+		return [];
+	}
 }
 
 /**
