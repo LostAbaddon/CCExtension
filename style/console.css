@@ -192,6 +192,36 @@ body {
 	margin-right: 5px;
 }
 
+/* "工作中"提示框样式 */
+#conversation_container .chat-item.working-indicator {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	background-color: var(--border-color);
+	color: var(--text-color);
+	font-style: italic;
+	opacity: 0.9;
+}
+
+/* 旋转动画的spinner */
+.working-spinner {
+	width: 20px;
+	height: 20px;
+	border: 3px solid rgba(127, 127, 127, 0.3);
+	border-top-color: var(--emphasize-color);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
 /* 底部输入区域 */
 #input-area-wrapper {
 	position: fixed;

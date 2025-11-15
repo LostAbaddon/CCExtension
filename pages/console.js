@@ -193,6 +193,9 @@ async function handleMessageSubmit(message) {
 		return;
 	}
 
+	// 显示"工作中"提示框
+	showWorkingIndicator();
+
 	// 提交消息到 CCCore
 	state.messages.push({ type: 'user', message });
 	await sendMessageToCore(CurrentCCTab, message, state);
@@ -233,15 +236,18 @@ async function sendMessageToCore(tabId, message, state) {
 			Conversations[result.sessionId] = tabId;
 			state.sessionId = result.sessionId;
 			state.messages.push({ type: 'ai', message: result.reply });
-			showAssistantMessage(result.reply);
+			if (tabId === CurrentCCTab) showAssistantMessage(result.reply);
 		}
 	}
 	catch (error) {
 		console.error('[Console] 消息提交失败:', error);
 		state.messages.push({ type: 'error', message: error.message });
-		showErrorMessage('消息提交失败: ' + error.message);
+		if (tabId === CurrentCCTab) showErrorMessage('消息提交失败: ' + error.message);
 	}
 	finally {
+		// 移除"工作中"提示框
+		hideWorkingIndicator();
+
 		const sessionId = state.sessionId;
 		if (!sessionId) return;
 		for (const key in ToolUsages) {
@@ -304,8 +310,16 @@ function showUserMessage(message) {
 	const renderedContent = MarkUp.parse(message);
 	messageElement.innerHTML = renderedContent;
 
-	// 添加到对话容器
-	conversationContainer.appendChild(messageElement);
+	// 检测是否有工作中提示框
+	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	// 添加到提示框前
+	if (workingIndicator) {
+		conversationContainer.insertBefore(messageElement, workingIndicator);
+	}
+	// 添加到最后
+	else {
+		conversationContainer.appendChild(messageElement);
+	}
 	// 滚动到底部
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
@@ -337,7 +351,16 @@ function showAssistantMessage(reply) {
 	const renderedContent = MarkUp.parse(reply);
 	messageElement.innerHTML = renderedContent;
 
-	conversationContainer.appendChild(messageElement);
+	// 检测是否有工作中提示框
+	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	// 添加到提示框前
+	if (workingIndicator) {
+		conversationContainer.insertBefore(messageElement, workingIndicator);
+	}
+	// 添加到最后
+	else {
+		conversationContainer.appendChild(messageElement);
+	}
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
 /**
@@ -364,7 +387,16 @@ function showErrorMessage(error) {
 	messageElement.classList.add('error-chat');
 	messageElement.textContent = error;
 
-	conversationContainer.appendChild(messageElement);
+	// 检测是否有工作中提示框
+	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	// 添加到提示框前
+	if (workingIndicator) {
+		conversationContainer.insertBefore(messageElement, workingIndicator);
+	}
+	// 添加到最后
+	else {
+		conversationContainer.appendChild(messageElement);
+	}
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
 /**
@@ -389,7 +421,16 @@ function showToolUsingMessage(toolUsage) {
 	messageElement.setAttribute('name', name);
 	messageElement.innerText = toolUsage;
 
-	conversationContainer.appendChild(messageElement);
+	// 检测是否有工作中提示框
+	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	// 添加到提示框前
+	if (workingIndicator) {
+		conversationContainer.insertBefore(messageElement, workingIndicator);
+	}
+	// 添加到最后
+	else {
+		conversationContainer.appendChild(messageElement);
+	}
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
 
 	return name;
@@ -683,6 +724,44 @@ const updateToolUsage = (sessionId, toolName, type) => {
 		ui.classList.add('tool-used');
 	}
 };
+
+/**
+ * 显示"工作中"提示框
+ */
+function showWorkingIndicator() {
+	if (!CurrentCCTab) return;
+
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) return;
+
+	// 创建"工作中"提示框
+	const indicator = document.createElement('div');
+	indicator.classList.add('chat-item');
+	indicator.classList.add('working-indicator');
+	indicator.innerHTML = `
+		<div class="working-spinner"></div>
+		<span>Claude 工作中……</span>
+	`;
+
+	// 添加到容器末尾
+	conversationContainer.appendChild(indicator);
+	// 滚动到底部
+	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+}
+/**
+ * 隐藏"工作中"提示框
+ */
+function hideWorkingIndicator() {
+	if (!CurrentCCTab) return;
+
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) return;
+
+	// 检测是否有工作中提示框
+	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	if (!workingIndicator) return;
+	workingIndicator.parentElement.removeChild(workingIndicator);
+}
 
 chrome.runtime.onMessage.addListener((request, sender) => {
 	console.log('[Console] 收到来自 background 的消息:', request);
