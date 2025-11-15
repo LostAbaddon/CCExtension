@@ -48,10 +48,15 @@ body * {
 .notification .container .title {
 	font-size: 16px;
 	font-weight: bolder;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
 }
 .notification .container .message {
-	margin-top: 6px;
-	font-size: 14px;
+	height: 48px;
+	margin-top: 5px;
+	overflow: hidden;
+	font-size: 12px;
 }
 </style>
 </head>

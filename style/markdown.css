@@ -2,8 +2,8 @@
 .markdown-body pre {
 	margin-left: -8px;
 	margin-right: -8px;
-	margin-top: 8em;
-	margin-bottom: 8em;
+	margin-top: 8px;
+	margin-bottom: 8px;
 	padding: 8px;
 	overflow-x: auto;
 	background-color: rgba(8, 8, 8, 1.0);
@@ -127,6 +127,14 @@
 }
 
 /* 分割线样式 */
+.markdown-body hr {
+	margin-top: 30px;
+	margin-bottom: 30px;
+	margin-left: 20%;
+	margin-right: 20%;
+	color: black;
+	border-color: rgb(from var(--front-color) r g b / 35%);
+}
 .markdown-body hr.footnote-line,
 .markdown-body hr.endnote-line {
 	width: 300px;

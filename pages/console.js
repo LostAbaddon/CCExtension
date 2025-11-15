@@ -91,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			// 新标签需要设置 workDir
 			console.log('[Console] 新 Tab 需要设置 workDir，显示目录选择弹窗');
 			const workDir = await showDirectoryPicker(newTabName);
-			console.log('----------------->', workDir);
 
 			if (!workDir) return;
 
@@ -241,6 +240,19 @@ async function sendMessageToCore(tabId, message, state) {
 		console.error('[Console] 消息提交失败:', error);
 		state.messages.push({ type: 'error', message: error.message });
 		showErrorMessage('消息提交失败: ' + error.message);
+	}
+	finally {
+		const sessionId = state.sessionId;
+		if (!sessionId) return;
+		for (const key in ToolUsages) {
+			const [tid, sid] = ToolUsages[key];
+			if (sid !== sessionId) continue;
+			delete ToolUsages[key];
+			const ui = document.querySelector(`#conversation_container div.chat-item.tool-using[name="${tid}"]`);
+			if (!ui) continue;
+			ui.classList.remove('tool-using');
+			ui.classList.add('tool-failed');
+		}
 	}
 }
 /**
@@ -604,27 +616,34 @@ const showDirectoryPicker = (tabName) => new Promise(res => {
 			// 保存 workDir
 			const state = getTabState(tabName);
 			state.workDir = currentPath;
+			localStorage.setItem('lastWorkDir', currentPath);
 			console.log(`[Console] Tab "${tabName}" 的 workDir 已设置为: ${currentPath}`);
 		}
 		document.body.removeChild(overlay);
 		res(currentPath);
 	});
 
-	// 初始加载（从 homedir 开始）
-	loadFolders(null);
+	// 初始加载
+	loadFolders(localStorage.getItem('lastWorkDir'));
 });
 
 const matchSessionIdWithTabId = (sessionId, content) => {
 	let tabId = Conversations[sessionId];
 	if (tabId) return; // 该对话已经与标签页绑定，则不再绑定
+
+	// 如果没有可匹配的，则放弃
+	if (PreConversations.length === 0) {
+		console.log('[TabSession] 没有可用的标签页: ' + sessionId);
+		return;
+	}
 	// 如果只有一个标签页等待与对话绑定
-	if (PreConversations.length === 1) {
+	else if (PreConversations.length === 1) {
 		tabId = PreConversations[0][0];
 		Conversations[sessionId] = tabId;
 		PreConversations.splice(0);
 	}
 	// 如果有不止一个标签页等待与对话绑定，则做匹配
-	else if (PreConversations.length > 1) {
+	else {
 		const temp = content.replace(/\s+/g, '').replace(/\p{P}/ug, '');
 		let idx = -1;
 		PreConversations.some((item, i) => {
@@ -640,9 +659,10 @@ const matchSessionIdWithTabId = (sessionId, content) => {
 		tabId = PreConversations[idx][0];
 		PreConversations.splice(idx, 1);
 	}
-	else {
-		console.log('[TabSession] 没有可用的标签页: ' + sessionId);
-	}
+
+	// 更新标签页信息中的 sessionId
+	const state = getTabState(tabId);
+	state.sessionId = sessionId;
 };
 
 const updateToolUsage = (sessionId, toolName, type) => {
@@ -651,17 +671,16 @@ const updateToolUsage = (sessionId, toolName, type) => {
 
 	if (type === 'start') {
 		const toolId = showToolUsingMessage(toolName);
-		ToolUsages[toolName] = toolId;
+		ToolUsages[toolName] = [toolId, sessionId];
 	}
 	else if (type === 'end') {
-		const toolId = ToolUsages[toolName];
+		const toolId = ToolUsages[toolName]?.[0];
 		if (!toolId) return;
 		delete ToolUsages[toolName];
 		const ui = document.querySelector(`#conversation_container div.chat-item.tool-using[name="${toolId}"]`);
 		if (!ui) return;
 		ui.classList.remove('tool-using');
 		ui.classList.add('tool-used');
-		ui.textContent = '✓ ' + toolName;
 	}
 };
 

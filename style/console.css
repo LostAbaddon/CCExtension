@@ -173,9 +173,23 @@ body {
 	border: 1px solid rgba(57, 57, 57, 0.6);
 	color: rgba(127, 127, 127, 1.0);
 }
+#conversation_container .chat-item.tool-used::before {
+	content: "✓";
+	display: inline-block;
+	margin-right: 5px;
+}
 [theme="light"] #conversation_container .chat-item.tool-used {
 	border: 1px solid rgba(175, 175, 175, 0.6);
 	color: rgba(127, 127, 127, 1.0);
+}
+#conversation_container .chat-item.tool-failed {
+	border: 1px solid rgba(157, 57, 57, 0.6);
+	color: rgba(175, 100, 100, 1.0);
+}
+#conversation_container .chat-item.tool-failed::before {
+	content: "˟";
+	display: inline-block;
+	margin-right: 5px;
 }
 
 /* 底部输入区域 */
