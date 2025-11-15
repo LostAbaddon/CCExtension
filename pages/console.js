@@ -94,7 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			if (!workDir) return;
 
-			const newTabContent = `<span>${workDir}</span>`;
+			// 从完整路径中提取目录名
+			const dirName = workDir.split('/').filter(Boolean).pop() || workDir;
+			const newTabContent = `<span>${dirName}</span>`;
 			FlexibleTabs.addTab(flexTab, newTabName, newTabContent);
 
 			// 自动切换到新标签
@@ -138,13 +140,16 @@ function restoreTabContent(tabName) {
 	if (state.messages && state.messages.length > 0) {
 		state.messages.forEach(msg => {
 			if (msg.type === 'user') {
-				showUserMessage(msg.message);
+				showUserMessage(msg.content);
 			}
 			else if (msg.type === 'ai') {
-				showAssistantMessage(msg.message);
+				showAssistantMessage(msg.content);
 			}
 			else if (msg.type === 'error') {
-				showErrorMessage(msg.message);
+				showErrorMessage(msg.content);
+			}
+			else if (msg.type === 'tool') {
+				showToolUsingMessage(msg.content, 'tool-used');
 			}
 		});
 
@@ -197,7 +202,7 @@ async function handleMessageSubmit(message) {
 	showWorkingIndicator();
 
 	// 提交消息到 CCCore
-	state.messages.push({ type: 'user', message });
+	state.messages.push({ type: 'user', content: message });
 	await sendMessageToCore(CurrentCCTab, message, state);
 }
 
@@ -235,13 +240,13 @@ async function sendMessageToCore(tabId, message, state) {
 		if (result.reply) {
 			Conversations[result.sessionId] = tabId;
 			state.sessionId = result.sessionId;
-			state.messages.push({ type: 'ai', message: result.reply });
+			state.messages.push({ type: 'ai', content: result.reply });
 			if (tabId === CurrentCCTab) showAssistantMessage(result.reply);
 		}
 	}
 	catch (error) {
 		console.error('[Console] 消息提交失败:', error);
-		state.messages.push({ type: 'error', message: error.message });
+		state.messages.push({ type: 'error', content: error.message });
 		if (tabId === CurrentCCTab) showErrorMessage('消息提交失败: ' + error.message);
 	}
 	finally {
@@ -292,15 +297,6 @@ function showUserMessage(message) {
 		return;
 	}
 
-	// 保存未渲染的消息到当前 tab 的状态中
-	if (CurrentCCTab) {
-		const state = getTabState(CurrentCCTab);
-		state.messages.push({
-			type: 'user',
-			content: message
-		});
-	}
-
 	const messageElement = document.createElement('div');
 	messageElement.classList.add('markdown-body');
 	messageElement.classList.add('chat-item');
@@ -331,15 +327,6 @@ function showAssistantMessage(reply) {
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) {
 		return;
-	}
-
-	// 保存未渲染的消息到当前 tab 的状态中
-	if (CurrentCCTab) {
-		const state = getTabState(CurrentCCTab);
-		state.messages.push({
-			type: 'assistant',
-			content: reply
-		});
 	}
 
 	const messageElement = document.createElement('div');
@@ -373,15 +360,6 @@ function showErrorMessage(error) {
 		return;
 	}
 
-	// 保存未渲染的消息到当前 tab 的状态中
-	if (CurrentCCTab) {
-		const state = getTabState(CurrentCCTab);
-		state.messages.push({
-			type: 'error',
-			content: error
-		});
-	}
-
 	const messageElement = document.createElement('div');
 	messageElement.classList.add('chat-item');
 	messageElement.classList.add('error-chat');
@@ -403,7 +381,7 @@ function showErrorMessage(error) {
  * 显示错误消息
  * @param {string} error - 错误信息
  */
-function showToolUsingMessage(toolUsage) {
+function showToolUsingMessage(toolUsage, status) {
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) {
 		return;
@@ -417,7 +395,7 @@ function showToolUsingMessage(toolUsage) {
 
 	const messageElement = document.createElement('div');
 	messageElement.classList.add('chat-item');
-	messageElement.classList.add('tool-using');
+	messageElement.classList.add(status || 'tool-using');
 	messageElement.setAttribute('name', name);
 	messageElement.innerText = toolUsage;
 
@@ -722,6 +700,11 @@ const updateToolUsage = (sessionId, toolName, type) => {
 		if (!ui) return;
 		ui.classList.remove('tool-using');
 		ui.classList.add('tool-used');
+		const state = getTabState(tabId);
+		state.messages.push({
+			type: "tool",
+			content: toolName
+		});
 	}
 };
 
