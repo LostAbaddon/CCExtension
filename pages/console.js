@@ -387,7 +387,7 @@ function showToolUsingMessage(toolUsage) {
 	messageElement.classList.add('chat-item');
 	messageElement.classList.add('tool-using');
 	messageElement.setAttribute('name', name);
-	messageElement.textContent = toolUsage;
+	messageElement.innerText = toolUsage;
 
 	conversationContainer.appendChild(messageElement);
 	conversationContainer.scrollTop = conversationContainer.scrollHeight;
