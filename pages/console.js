@@ -80,6 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
 			CurrentCCTab = tabName;
 			// 恢复新 tab 的内容
 			restoreTabContent(tabName);
+
+			// 自动聚焦到输入框
+			const mainInput = document.getElementById('main-input');
+			if (mainInput) {
+				VoiceInput.focus(mainInput);
+			}
 		});
 		// 监听添加按钮点击事件
 		flexTab.addEventListener('onAdd', async () => {
@@ -686,9 +692,9 @@ const matchSessionIdWithTabId = (sessionId, content) => {
 
 const updateToolUsage = (sessionId, toolName, type) => {
 	const tabId = Conversations[sessionId];
-	if (tabId !== CurrentCCTab) return; // 不是当前标签页或没有对应标签页
 
 	if (type === 'start') {
+		if (tabId !== CurrentCCTab) return; // 不是当前标签页或没有对应标签页
 		const toolId = showToolUsingMessage(toolName);
 		ToolUsages[toolName] = [toolId, sessionId];
 	}
@@ -697,9 +703,10 @@ const updateToolUsage = (sessionId, toolName, type) => {
 		if (!toolId) return;
 		delete ToolUsages[toolName];
 		const ui = document.querySelector(`#conversation_container div.chat-item.tool-using[name="${toolId}"]`);
-		if (!ui) return;
-		ui.classList.remove('tool-using');
-		ui.classList.add('tool-used');
+		if (ui) {
+			ui.classList.remove('tool-using');
+			ui.classList.add('tool-used');
+		}
 		const state = getTabState(tabId);
 		state.messages.push({
 			type: "tool",
@@ -746,7 +753,7 @@ function hideWorkingIndicator() {
 	workingIndicator.parentElement.removeChild(workingIndicator);
 }
 
-chrome.runtime.onMessage.addListener((request, sender) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	console.log('[Console] 收到来自 background 的消息:', request);
 	if (request.event == 'user_input') {
 		const { sessionId, content } = request.data ?? {};
@@ -757,5 +764,31 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 		if (!type) return;
 		const { sessionId, toolName } = request.data ?? {};
 		updateToolUsage(sessionId, toolName, type);
+	}
+	else if (request.event == 'query_session_tab') {
+		// 查询 sessionId 对应的 tabId
+		const { sessionId } = request.data ?? {};
+		const tabId = Conversations[sessionId];
+		if (tabId) {
+			const isActive = tabId === CurrentCCTab;
+			console.log(`[Console] 查询到 sessionId ${sessionId} 对应的 tabId: ${tabId}, 是否激活: ${isActive}`);
+			sendResponse({ found: true, tabName: tabId, isActive });
+		}
+		else {
+			console.log(`[Console] 未找到 sessionId ${sessionId} 对应的 tabId`);
+			sendResponse({ found: false });
+		}
+		return true;
+	}
+	else if (request.event == 'switch_to_tab') {
+		// 切换到指定的标签页
+		const { tabName } = request.data ?? {};
+		if (tabName) {
+			const flexTab = document.querySelector('flex_tab');
+			if (flexTab) {
+				FlexibleTabs.setActiveTab(flexTab, tabName);
+				console.log(`[Console] 切换到标签页: ${tabName}`);
+			}
+		}
 	}
 });

@@ -25,17 +25,17 @@ async function initNotificationPreference() {
 		const result = await chrome.storage.local.get('useBrowserNotification');
 		if (result.useBrowserNotification !== undefined) {
 			useBrowserNotification = result.useBrowserNotification;
-			console.log('[Claude Code Extension] 已加载通知偏好:', { useBrowserNotification });
+			console.log('[Claudius] 已加载通知偏好:', { useBrowserNotification });
 		}
 		else {
 			// 如果未设置过，使用默认值 true
 			useBrowserNotification = true;
 			await chrome.storage.local.set({ useBrowserNotification });
-			console.log('[Claude Code Extension] 已初始化通知偏好为默认值: true');
+			console.log('[Claudius] 已初始化通知偏好为默认值: true');
 		}
 	}
 	catch (error) {
-		console.error('[Claude Code Extension] 初始化通知偏好失败:', error.message);
+		console.error('[Claudius] 初始化通知偏好失败:', error.message);
 	}
 }
 
@@ -48,13 +48,13 @@ function connectToCCCore() {
 	}
 
 	isConnecting = true;
-	console.log('[Claude Code Extension] 正在连接到 Claude Code Core...');
+	console.log('[Claudius] 正在连接到 Claude Code Core...');
 
 	try {
 		wsConnection = new WebSocket(CONFIG.ccCoreWsUrl);
 
 		wsConnection.addEventListener('open', () => {
-			console.log('[Claude Code Extension] 已连接到 Claude Code Core');
+			console.log('[Claudius] 已连接到 Claude Code Core');
 			isConnecting = false;
 
 			// 清除重连定时器（连接成功）
@@ -78,20 +78,20 @@ function connectToCCCore() {
 		});
 
 		wsConnection.addEventListener('close', () => {
-			console.log('[Claude Code Extension] 已断开连接');
+			console.log('[Claudius] 已断开连接');
 			isConnecting = false;
 			wsConnection = null;
 			attemptReconnect();
 		});
 
 		wsConnection.addEventListener('error', (error) => {
-			console.error('[Claude Code Extension] WebSocket 错误:', error);
+			console.error('[Claudius] WebSocket 错误:', error);
 			isConnecting = false;
 			attemptReconnect();
 		});
 	}
 	catch (error) {
-		console.error('[Claude Code Extension] 连接失败:', error.message);
+		console.error('[Claudius] 连接失败:', error.message);
 		isConnecting = false;
 		attemptReconnect();
 	}
@@ -103,7 +103,7 @@ function stopReconnectTimer() {
 	if (reconnectTimer !== null) {
 		clearInterval(reconnectTimer);
 		reconnectTimer = null;
-		console.log('[Claude Code Extension] 已停止周期重连');
+		console.log('[Claudius] 已停止周期重连');
 	}
 }
 /**
@@ -115,7 +115,7 @@ function startReconnectTimer() {
 		return;
 	}
 
-	console.log(`[Claude Code Extension] 启动 30 秒周期重连，每 ${CONFIG.reconnectInterval}ms 尝试一次`);
+	console.log(`[Claudius] 启动 30 秒周期重连，每 ${CONFIG.reconnectInterval}ms 尝试一次`);
 
 	reconnectTimer = setInterval(() => {
 		if (!isConnecting && (!wsConnection || wsConnection.readyState !== WebSocket.OPEN)) {
@@ -137,7 +137,7 @@ function attemptReconnect() {
  */
 function sendMessage(message) {
 	if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
-		console.warn('[Claude Code Extension] WebSocket 未连接，无法发送消息');
+		console.warn('[Claudius] WebSocket 未连接，无法发送消息');
 		return false;
 	}
 
@@ -146,7 +146,7 @@ function sendMessage(message) {
 		return true;
 	}
 	catch (error) {
-		console.error('[Claude Code Extension] 发送消息失败:', error.message);
+		console.error('[Claudius] 发送消息失败:', error.message);
 		return false;
 	}
 }
@@ -154,7 +154,7 @@ function sendMessage(message) {
  * 处理来自 Claude Code Core 的消息
  */
 function handleMessage(message) {
-	console.log('[Claude Code Extension] 收到消息:', message);
+	console.log('[Claudius] 收到消息:', message);
 
 	const { type, action, data, messageId } = message;
 
@@ -229,7 +229,7 @@ async function handleRequest(action, data, messageId) {
 		});
 	}
 	catch (error) {
-		console.error('[Claude Code Extension] 处理请求失败:', error.message);
+		console.error('[Claudius] 处理请求失败:', error.message);
 		sendMessage({
 			type: 'RESPONSE',
 			messageId: messageId,
@@ -242,11 +242,11 @@ async function handleRequest(action, data, messageId) {
  * 创建通知
  */
 async function handleCreateNotification(data) {
-	const { title, message, triggerTime, id } = data;
+	const { title, message, triggerTime, id, sessionId } = data;
 
 	// 检查是否使用浏览器通知
 	if (!useBrowserNotification) {
-		console.log(`[Claude Code Extension] 通知(${id})回退到系统原生通知`);
+		console.log(`[Notification] 通知(${id})回退到系统原生通知`);
 		return {
 			ok: false,
 			fallback: true,
@@ -265,8 +265,8 @@ async function handleCreateNotification(data) {
 	// 计算延迟时间
 	const delay = Math.max(0, triggerTime - now);
 
-	console.log(`[Claude Code Extension] 创建通知(${id}): "${title}", 延迟 ${delay}ms`);
-	return showNotification(id, title, message, delay);
+	console.log(`[Notification] 创建通知(${id}): "${title}", 延迟 ${delay}ms, sessionId: ${sessionId}`);
+	return showNotification(id, title, message, delay, sessionId);
 }
 /**
  * 取消通知
@@ -287,7 +287,7 @@ async function handleCancelNotification(id) {
 /**
  * 显示通知
  */
-async function showNotification(id, title, message, delay) {
+function showNotification(id, title, message, delay, sessionId) {
 	const timer = setTimeout(async () => {
 		clearTimeout(timer);
 		delete localReminderTimers[id];
@@ -307,20 +307,20 @@ async function showNotification(id, title, message, delay) {
 
 		const tag = 'reminder_' + id;
 		const reminder = {};
-		reminder[tag] = { title, message }
+		reminder[tag] = { title, message, sessionId }
 		chrome.storage.local.set(reminder).then(() => {
 			chrome.action.setPopup({
 				popup: `pages/notification.html?id=${id}`,
 			}).then(() => {
 				chrome.action.openPopup();
 			}).catch(err => {
-				console.error(`[Claude Code Popup] 提醒失败\n`, err);
+				console.error(`[Notification] 提醒失败\n`, err);
 			}).finally(() => {
 				chrome.action.setPopup({ popup: `pages/popup.html` });
 			});
 		});
 
-		console.log(`[Claude Code Notification] 显示通知: ${id}`);
+		console.log(`[Notification] 显示通知: ${id}`);
 		chrome.notifications.create(id, {
 			type: 'basic',
 			iconUrl: 'icons/icon-128.png',
@@ -328,7 +328,7 @@ async function showNotification(id, title, message, delay) {
 			message: message,
 			requireInteraction: true,
 		}).catch(err => {
-			console.error(`[Claude Code Notification] 提醒失败\n`, err);
+			console.error(`[Notification] 提醒失败\n`, err);
 		});
 	}, delay);
 	localReminderTimers[id] = timer;
@@ -340,7 +340,7 @@ async function showNotification(id, title, message, delay) {
 function handleReminderListUpdate(data) {
 	const { reminders, count } = data;
 
-	console.log('[Claude Code Extension] 收到提醒列表更新:', { count });
+	console.log('[Reminder] 收到提醒列表更新:', { count });
 
 	// 更新本地副本
 	localRemindersList = reminders || [];
@@ -350,7 +350,7 @@ function handleReminderListUpdate(data) {
 		remindersList: localRemindersList,
 		lastUpdateTime: Date.now(),
 	}, () => {
-		console.log('[Claude Code Extension] 提醒列表已保存到 storage');
+		console.log('[Reminder] 提醒列表已保存到 storage');
 	});
 
 	return { ok: true, status: 'updated', count };
@@ -362,7 +362,7 @@ function handleReminderListUpdate(data) {
 async function handleOpenPage(data) {
 	const { url, activate } = data;
 
-	console.log(`[Claude Code Extension] 打开网页: ${url} (激活: ${activate})`);
+	console.log(`[Browser] 打开网页: ${url} (激活: ${activate})`);
 
 	try {
 		// 尝试在已打开的标签页中查找该 URL
@@ -387,7 +387,7 @@ async function handleOpenPage(data) {
 		return { ok: true, status: 'opened', tabId: targetTab.id };
 	}
 	catch (error) {
-		console.error('[Claude Code Extension] 打开网页失败:', error.message);
+		console.error('[Browser] 打开网页失败:', error.message);
 		return { ok: false, error: error.message };
 	}
 }
@@ -396,7 +396,7 @@ async function handleOpenPage(data) {
  * 处理通知偏好查询
  */
 function handleQueryNotificationPreference() {
-	console.log('[Claude Code Extension] 返回通知偏好:', { useBrowserNotification });
+	console.log('[Notification] 返回通知偏好:', { useBrowserNotification });
 	return {
 		ok: true,
 		useBrowserNotification,
@@ -408,12 +408,12 @@ function handleQueryNotificationPreference() {
  */
 function setNotificationPreference(useChrome) {
 	useBrowserNotification = useChrome;
-	console.log('[Claude Code Extension] 通知偏好已更新:', { useBrowserNotification });
+	console.log('[Notification] 通知偏好已更新:', { useBrowserNotification });
 
 	chrome.storage.local.set({
 		useBrowserNotification,
 	}, () => {
-		console.log('[Claude Code Extension] 通知偏好已保存');
+		console.log('[Notification] 通知偏好已保存');
 	});
 }
 
@@ -422,7 +422,7 @@ function setNotificationPreference(useChrome) {
  */
 function handleStopReminderConfigUpdate(data) {
 	const { enabled, delay } = data;
-	console.log('[Claude Code Extension] Stop-reminder 配置已更新:', { enabled, delay });
+	console.log('[Claudius] Stop-reminder 配置已更新:', { enabled, delay });
 
 	// 可以在这里添加额外的处理逻辑
 	// 目前只记录日志即可
@@ -435,7 +435,7 @@ function handleStopReminderConfigUpdate(data) {
  */
 async function handleToolEvent(data) {
 	const { sessionId, toolName, eventType, timestamp } = data;
-	console.log(`[Claude Code Extension] 工具事件: ${toolName} - ${eventType} (Session: ${sessionId})`);
+	console.log(`[Claudius] 工具事件: ${toolName} - ${eventType} (Session: ${sessionId})`);
 
 	const tabs = await findTabsByUrl('chrome-extension://mknfpdalpbjjlhkdajnaamomibdhjkdb/pages/console.html');
 	if (!tabs || !tabs.length) return;
@@ -455,7 +455,7 @@ async function handleToolEvent(data) {
  */
 async function handleUserInputEvent(data) {
 	const { sessionId, content } = data;
-	console.log(`[Claude Code Extension] 用户输入事件: ${content} (Session: ${sessionId})`);
+	console.log(`[Claudius] 用户输入事件: ${content} (Session: ${sessionId})`);
 
 	const tabs = await findTabsByUrl('chrome-extension://mknfpdalpbjjlhkdajnaamomibdhjkdb/pages/console.html');
 	if (!tabs || !tabs.length) return;
@@ -486,12 +486,12 @@ function startHeartbeat() {
 if (chrome.notifications) {
 	chrome.notifications.onClosed.addListener((notifyName) => {
 		if (notifyName.startsWith('notification_')) {
-			console.log(`[Claude Code Extension] Notification triggered: ${notifyName}`);
+			console.log(`[Notification] Triggered: ${notifyName}`);
 		}
 	});
 }
 else {
-	console.warn('[Claude Code Extension] chrome.notifications API 不可用');
+	console.warn('[Notification] chrome.notifications API 不可用');
 }
 
 /**
@@ -527,7 +527,7 @@ function sendPageInfo(tab) {
 	};
 
 	sendMessage(pageInfo);
-	console.log('[Claude Code Extension] 页面信息已发送:', pageInfo);
+	console.log('[Claudius] 页面信息已发送:', pageInfo);
 }
 
 /**
@@ -547,12 +547,12 @@ function fetchInitialRemindersList() {
 					remindersList: localRemindersList,
 					lastUpdateTime: Date.now(),
 				}, () => {
-					console.log('[Claude Code Extension] 初始提醒列表已加载:', { count: localRemindersList.length });
+					console.log('[Reminder] 初始提醒列表已加载:', { count: localRemindersList.length });
 				});
 			}
 		})
 		.catch(error => {
-			console.warn('[Claude Code Extension] 获取初始提醒列表失败:', error.message);
+			console.warn('[Reminder] 获取初始提醒列表失败:', error.message);
 		});
 }
 
@@ -568,10 +568,73 @@ async function findTabsByUrl(urlPattern) {
 }
 
 /**
+ * 处理通知点击
+ * @param {string} sessionId - 会话 ID
+ */
+async function handleNotificationClick(sessionId) {
+	// 如果没有 sessionId，只打开 console.html
+	if (!sessionId) {
+		console.log(`[Popup] 没有 SessionID`);
+		const consoleURL = chrome.runtime.getURL('pages/console.html');
+		const tabs = await chrome.tabs.query({ url: consoleURL });
+		if (tabs.length > 0) {
+			await chrome.tabs.update(tabs[0].id, { active: true });
+			await chrome.windows.update(tabs[0].windowId, { focused: true });
+		}
+		else {
+			await chrome.tabs.create({ url: consoleURL });
+		}
+		return;
+	}
+	console.log(`[Popup] 处理通知点击, sessionId: ${sessionId}`);
+
+	// 查找 console.html 标签页
+	const consoleURL = chrome.runtime.getURL('pages/console.html');
+	const tabs = await findTabsByUrl(consoleURL);
+	if (!tabs || tabs.length === 0) {
+		console.log(`[Popup] 没有找到 console.html 页面`);
+		return;
+	}
+
+	// 向所有 console.html 页面查询 sessionId 对应的 tabId
+	const sidResult = (await Promise.all(tabs.map(async tab => {
+		try {
+			const response = await chrome.tabs.sendMessage(tab.id, {
+				event: 'query_session_tab',
+				data: { sessionId }
+			});
+			return { tabId: tab.id, winId: tab.windowId, ...response };
+		}
+		catch (error) {
+			console.error(`[Popup] 查询标签页失败:`, error);
+			return null;
+		}
+	}))).find(r => r && r.found);
+	if (!sidResult) {
+		// 该 sessionId 不属于任何打开的标签页，不做处理
+		console.log(`[Popup] sessionId ${sessionId} 不属于任何打开的标签页`);
+		return;
+	}
+
+	// 切换到 console.html 页面
+	console.log(`[Popup] 切换到 Console 所在的窗体与页面`, sidResult);
+	await chrome.windows.update(sidResult.winId, { focused: true });
+	await chrome.tabs.update(sidResult.tabId, { active: true });
+	// 如果该标签页未激活，发送切换标签的消息
+	if (!sidResult.isActive) {
+		console.log(`[Popup] 切换到标签页: ${sidResult.tabName}`);
+		await chrome.tabs.sendMessage(sidResult.tabId, {
+			event: 'switch_to_tab',
+			data: { tabName: sidResult.tabName }
+		});
+	}
+}
+
+/**
  * 初始化
  */
 chrome.runtime.onInstalled.addListener(async () => {
-	console.log('[Claude Code Extension] 插件已安装');
+	console.log('[Claudius] 插件已安装');
 	await initNotificationPreference();
 	connectToCCCore();
 });
@@ -580,6 +643,10 @@ chrome.runtime.onInstalled.addListener(async () => {
  * 通讯事件处理
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	if (request.type === 'LOG') {
+		(console[(request.level || '').toLowerCase() || 'log'] || console.log)('[' + request.name.toUpperCase() + ']', ...request.message);
+		return true;
+	}
 	if (request.type === 'GET_STATUS') {
 		// 返回连接状态
 		sendResponse({
@@ -596,13 +663,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		setNotificationPreference(request.useBrowserNotification);
 		sendResponse({ ok: true });
 	}
+	if (request.type === 'HANDLE_NOTIFICATION_CLICK') {
+		// 处理通知点击
+		handleNotificationClick(request.sessionId);
+		return true;
+	}
 
 	return false;
 });
 
 // 初始化日志
-console.log('[Claude Code Extension] Background Service Worker 已加载');
-console.log('[Claude Code Extension] 可用的 API:');
+console.log('[Claudius] Background Service Worker 已加载');
+console.log('[Claudius] 可用的 API:');
 console.log('  - chrome.notifications:', !!chrome.notifications);
 console.log('  - chrome.tabs:', !!chrome.tabs);
 console.log('  - chrome.notifications:', !!chrome.notifications);
