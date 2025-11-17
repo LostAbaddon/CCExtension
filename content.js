@@ -28,6 +28,40 @@
 		return false;
 	}
 
+	// 检查是否是本地目录
+	function isLocalDirectory() {
+		const url = window.location.href;
+		const pathname = window.location.pathname;
+
+		// 必须是 file:// 协议
+		if (!url.startsWith('file://')) {
+			return false;
+		}
+
+		// 检查是否以 / 结尾(表示目录)
+		if (pathname.endsWith('/')) {
+			return true;
+		}
+
+		// 检查页面内容是否为空或只包含默认的目录列表
+		const body = document.body;
+		if (!body || body.children.length === 0) {
+			return true;
+		}
+
+		// 检查是否是浏览器默认的目录列表页面
+		// Chrome/Firefox 默认会显示一个空白页面或简单的文件列表
+		if (body.children.length === 1) {
+			const firstChild = body.children[0];
+			// 检查是否是空的或只有简单文本
+			if (firstChild.tagName === 'PRE' && firstChild.textContent.trim() === '') {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// 获取 Markdown 内容
 	function getMarkdownContent() {
 		const body = document.body;
@@ -41,9 +75,6 @@
 		return body.textContent || body.innerText;
 	}
 
-	// 存储原始 Markdown 内容
-	let originalMarkdownContent = '';
-	let isShowingSource = false;
 
 	// 渲染 Markdown
 	function renderMarkdown() {
@@ -55,7 +86,6 @@
 
 		// 获取 Markdown 内容
 		const markdownContent = getMarkdownContent();
-		originalMarkdownContent = markdownContent;
 
 		// 渲染 Markdown
 		if (typeof MarkUp !== 'undefined') {
@@ -63,33 +93,14 @@
 				const html = MarkUp.fullParse(markdownContent);
 
 				// 替换页面内容
-				document.body.innerHTML = `<div id="menu-wrapper">
-	<div id="menu-toggle-btn" title="展开菜单">
-		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	</div>
-	<div id="action-menu">
-		<div class="menu-item" id="theme-toggle-btn" title="切换主题">
-			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>
-		</div>
-		<div class="menu-item" id="source-toggle-btn" title="显示源文件">
-			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path class="view-source-icon" d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-source-icon" d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-source-icon" d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-source-icon" d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-source-icon" d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-rendered-icon" d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-rendered-icon" d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path class="view-rendered-icon" d="M9 15L11 17L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>
-		</div>
-	</div>
+				document.body.innerHTML = `<!-- 主题切换按钮 -->
+<div id="theme-toggle-btn" title="切换主题">
+	<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+		<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+		<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	</svg>
 </div>
+
 <div id="markdown-container">
 	<div class="markdown-body">
 		${html.content}
@@ -134,7 +145,6 @@
 				loadStyles();
 				// 绑定事件
 				setupThemeToggle();
-				setupSourceToggle();
 
 				console.log('[CCExtension] Markdown 渲染完成');
 			}
@@ -208,66 +218,6 @@
 		}
 	}
 
-	// 设置源文件切换按钮
-	function setupSourceToggle() {
-		const sourceToggleBtn = document.getElementById('source-toggle-btn');
-		if (sourceToggleBtn) {
-			sourceToggleBtn.addEventListener('click', toggleSource);
-		}
-	}
-
-	// 切换源文件显示
-	function toggleSource() {
-		const container = document.getElementById('markdown-container');
-		const sourceToggleBtn = document.getElementById('source-toggle-btn');
-		if (!container || !sourceToggleBtn) return;
-
-		isShowingSource = !isShowingSource;
-
-		if (isShowingSource) {
-			// 显示源文件
-			container.innerHTML = `<pre class="markdown-source">${escapeHtml(originalMarkdownContent)}</pre>`;
-			sourceToggleBtn.title = '显示渲染结果';
-			// 更新图标显示
-			updateSourceIcon(true);
-		}
-		else {
-			// 显示渲染结果
-			const html = MarkUp.fullParse(originalMarkdownContent);
-			container.innerHTML = `<div class="markdown-body">${html.content}</div>`;
-			sourceToggleBtn.title = '显示源文件';
-			// 更新图标显示
-			updateSourceIcon(false);
-		}
-	}
-
-	// 更新源文件切换按钮图标
-	function updateSourceIcon(isSource) {
-		const sourceToggleBtn = document.getElementById('source-toggle-btn');
-		if (!sourceToggleBtn) return;
-
-		const viewSourceIcons = sourceToggleBtn.querySelectorAll('.view-source-icon');
-		const viewRenderedIcons = sourceToggleBtn.querySelectorAll('.view-rendered-icon');
-
-		if (isSource) {
-			// 当前显示源文件，按钮表示"切换到渲染视图"
-			viewSourceIcons.forEach(icon => icon.style.display = 'none');
-			viewRenderedIcons.forEach(icon => icon.style.display = 'block');
-		}
-		else {
-			// 当前显示渲染结果，按钮表示"切换到源文件"
-			viewSourceIcons.forEach(icon => icon.style.display = 'block');
-			viewRenderedIcons.forEach(icon => icon.style.display = 'none');
-		}
-	}
-
-	// HTML 转义函数
-	function escapeHtml(text) {
-		const div = document.createElement('div');
-		div.textContent = text;
-		return div.innerHTML;
-	}
-
 	// 加载样式
 	function loadStyles() {
 		const styles = [
@@ -287,12 +237,229 @@
 		detectAndSetTheme();
 	}
 
+	// 根据文件名获取图标
+	function getFileIcon(filename) {
+		const ext = filename.split('.').pop().toLowerCase();
+
+		// 图片文件
+		if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(ext)) {
+			return '🖼️';
+		}
+		// 视频文件
+		if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(ext)) {
+			return '🎬';
+		}
+		// 音频文件
+		if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(ext)) {
+			return '🎵';
+		}
+		// 压缩文件
+		if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) {
+			return '📦';
+		}
+		// 代码文件
+		if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'go', 'rs', 'php', 'rb', 'swift'].includes(ext)) {
+			return '📝';
+		}
+		// Markdown 文件
+		if (['md', 'markdown'].includes(ext)) {
+			return '📄';
+		}
+		// 文档文件
+		if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+			return '📋';
+		}
+		// 文本文件
+		if (['txt', 'log', 'csv', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(ext)) {
+			return '📃';
+		}
+		// 可执行文件
+		if (['exe', 'app', 'dmg', 'pkg', 'deb', 'rpm'].includes(ext)) {
+			return '⚙️';
+		}
+		// 默认文件图标
+		return '📄';
+	}
+
+	// 加载目录内容
+	async function loadDirectoryContent(path) {
+		try {
+			const url = path
+				? `http://localhost:3579/api/folders?path=${encodeURIComponent(path)}&includeFiles=true`
+				: 'http://localhost:3579/api/folders?includeFiles=true';
+
+			const response = await fetch(url);
+			const data = await response.json();
+
+			if (!data.ok) {
+				throw new Error(data.error || '获取目录内容失败');
+			}
+
+			return data;
+		}
+		catch (error) {
+			console.error('[CCExtension] 加载目录内容失败:', error);
+			throw error;
+		}
+	}
+
+	// 渲染目录浏览器
+	async function renderDirectory() {
+		if (!isLocalDirectory()) {
+			return;
+		}
+
+		console.log('[CCExtension] 检测到本地目录，开始渲染目录浏览器...');
+
+		// 获取当前目录路径
+		let currentPath = decodeURIComponent(window.location.pathname);
+
+		// 替换页面内容
+		document.body.innerHTML = `<!-- 主题切换按钮 -->
+<div id="theme-toggle-btn" title="切换主题">
+	<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+		<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+		<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	</svg>
+</div>
+
+<div id="directory-container">
+	<div id="directory-header">
+		<div id="directory-title">目录浏览器</div>
+		<div id="current-path-display">${currentPath}</div>
+	</div>
+	<div id="directory-list">
+		<div class="directory-loading">加载中</div>
+	</div>
+</div>`;
+
+		// 加载样式
+		loadDirectoryStyles();
+
+		// 设置主题
+		detectAndSetTheme();
+
+		// 绑定主题切换事件
+		setupThemeToggle();
+
+		// 加载目录内容
+		await updateDirectoryList(currentPath);
+
+		console.log('[CCExtension] 目录浏览器渲染完成');
+	}
+
+	// 更新目录列表
+	async function updateDirectoryList(path) {
+		const directoryList = document.getElementById('directory-list');
+		if (!directoryList) return;
+
+		try {
+			// 显示加载中
+			directoryList.innerHTML = '<div class="directory-loading">加载中</div>';
+
+			// 加载目录内容
+			const data = await loadDirectoryContent(path);
+
+			// 更新当前路径显示
+			const pathDisplay = document.getElementById('current-path-display');
+			if (pathDisplay) {
+				pathDisplay.textContent = data.currentPath;
+			}
+
+			// 清空列表
+			directoryList.innerHTML = '';
+
+			// 如果不是根目录，添加返回上级目录选项
+			if (data.currentPath !== '/') {
+				const parentItem = document.createElement('a');
+				parentItem.className = 'directory-item parent-dir';
+				const parentPath = data.currentPath.split('/').slice(0, -1).join('/') || '/';
+				parentItem.href = `file://${parentPath}/`;
+				parentItem.innerHTML = `
+					<span class="directory-item-icon">⬆️</span>
+					<span class="directory-item-name">..</span>
+				`;
+				directoryList.appendChild(parentItem);
+			}
+
+			// 添加文件夹列表
+			const hasFolders = data.folders && data.folders.length > 0;
+			const hasFiles = data.files && data.files.length > 0;
+
+			if (!hasFolders && !hasFiles) {
+				const emptyMsg = document.createElement('div');
+				emptyMsg.className = 'directory-empty';
+				emptyMsg.textContent = '当前目录为空';
+				directoryList.appendChild(emptyMsg);
+			}
+			else {
+				// 先显示文件夹
+				if (hasFolders) {
+					data.folders.forEach(folder => {
+						const folderItem = document.createElement('a');
+						folderItem.className = 'directory-item';
+						folderItem.href = `file://${folder.path}/`;
+						folderItem.innerHTML = `
+							<span class="directory-item-icon">📁</span>
+							<span class="directory-item-name">${folder.name}</span>
+						`;
+						directoryList.appendChild(folderItem);
+					});
+				}
+
+				// 再显示文件
+				if (hasFiles) {
+					data.files.forEach(file => {
+						const fileItem = document.createElement('a');
+						fileItem.className = 'directory-item';
+						fileItem.href = `file://${file.path}`;
+						// 根据文件类型显示不同图标
+						const icon = getFileIcon(file.name);
+						fileItem.innerHTML = `
+							<span class="directory-item-icon">${icon}</span>
+							<span class="directory-item-name">${file.name}</span>
+						`;
+						directoryList.appendChild(fileItem);
+					});
+				}
+			}
+		}
+		catch (error) {
+			console.error('[CCExtension] 更新目录列表失败:', error);
+			directoryList.innerHTML = `
+				<div class="directory-error">
+					加载失败: ${error.message}
+				</div>
+			`;
+		}
+	}
+
+	// 加载目录浏览器样式
+	function loadDirectoryStyles() {
+		const styles = [
+			chrome.runtime.getURL('style/main.css'),
+			chrome.runtime.getURL('style/theme-toggle.css'),
+			chrome.runtime.getURL('style/directory-browser.css'),
+		];
+
+		styles.forEach(styleUrl => {
+			const link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.href = styleUrl;
+			document.head.appendChild(link);
+		});
+	}
+
 	// 开始渲染
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', renderMarkdown);
+		document.addEventListener('DOMContentLoaded', () => {
+			renderMarkdown();
+			renderDirectory();
+		});
 	}
 	else {
 		renderMarkdown();
+		renderDirectory();
 	}
 
 	// 监听主题变化（从其他页面同步）

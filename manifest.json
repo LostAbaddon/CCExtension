@@ -51,6 +51,7 @@
         "style/markdown.css",
         "style/theme.css",
         "style/theme-toggle.css",
+        "style/directory-browser.css",
         "pages/settings.html"
       ],
       "matches": [
