@@ -96,7 +96,39 @@
 	</div>
 </div>`;
 				// 针对本地地址做二次处理
-				document.body.querySelectorAll('');
+				let path = location.href.replace(/^file:\/\//, '').replace(/\/[^\/]+\.md$/, '/');
+				let pathList = path.split('/').filter(i => i);
+				[...document.body.querySelectorAll('a[href*="file"]')].forEach(link => {
+					if (link.href.match(/file:\/\/\./)) {
+						let lev = path + link.href.replace(/file:\/\//, '');
+						lev = lev.split('/');
+						lev = lev.filter(item => item !== '.');
+						for (let i = lev.length - 1; i >= 0; i --) {
+							const j = lev[i];
+							if (j === '..') {
+								lev.splice(i - 1, 2);
+								i --;
+							}
+						}
+						link.href = 'file://' +  lev.join('/');
+					}
+					const list = link.innerText.split('/').filter(i => i);
+					const len = Math.min(pathList.length, list.length);
+					let fork = -1;
+					for (let i = 0; i < len; i ++) {
+						if (pathList[i] === list[i]) {
+							fork = i;
+						}
+						else {
+							break;
+						}
+					}
+					if (fork >= 0) {
+						let rel = '../'.repeat(pathList.length - 1 - fork) || './';
+						list.splice(0, fork + 1);
+						link.innerText = rel + list.join('/');
+					}
+				});
 
 				// 加载样式
 				loadStyles();
