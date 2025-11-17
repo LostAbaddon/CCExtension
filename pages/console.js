@@ -162,7 +162,7 @@ async function restoreAllTabs() {
 
 		// 恢复每个标签页
 		for (const tabData of savedTabs) {
-			const { tabName, tabContent, workDir, sessionId, messages } = tabData;
+			const { tabName, workDir, sessionId, messages } = tabData;
 			if (!workDir || !sessionId) continue;
 
 			// 恢复标签页状态

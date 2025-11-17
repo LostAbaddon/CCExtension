@@ -371,6 +371,102 @@
 	}
 
 	/**
+	 * 获取所有标签页名称
+	 * @param {HTMLElement} flexTabElement - flex_tab 元素
+	 * @returns {Array<string>} 标签页名称数组
+	 */
+	function getAllTabNames(flexTabElement) {
+		const config = flexTabElement._config;
+		if (!config) {
+			console.error('[FlexibleTabs] flex_tab 未初始化');
+			return [];
+		}
+
+		const tabs = config.scroll.querySelectorAll('.flexible-tab');
+		return Array.from(tabs).map(tab => tab.dataset.tabName);
+	}
+
+	/**
+	 * 获取当前激活的标签页名称
+	 * @param {HTMLElement} flexTabElement - flex_tab 元素
+	 * @returns {string|null} 当前激活的标签页名称，如果没有返回 null
+	 */
+	function getActiveTabName(flexTabElement) {
+		const config = flexTabElement._config;
+		if (!config) {
+			console.error('[FlexibleTabs] flex_tab 未初始化');
+			return null;
+		}
+
+		const activeTab = config.scroll.querySelector('.flexible-tab.active');
+		return activeTab ? activeTab.dataset.tabName : null;
+	}
+
+	/**
+	 * 切换到下一个标签页（循环）
+	 * @param {HTMLElement} flexTabElement - flex_tab 元素
+	 */
+	function nextTab(flexTabElement) {
+		const config = flexTabElement._config;
+		if (!config) {
+			console.error('[FlexibleTabs] flex_tab 未初始化');
+			return;
+		}
+
+		const tabs = config.scroll.querySelectorAll('.flexible-tab');
+		if (tabs.length === 0) return;
+
+		const activeTab = config.scroll.querySelector('.flexible-tab.active');
+		if (!activeTab) {
+			// 如果没有激活的标签页，激活第一个
+			const firstName = tabs[0].dataset.tabName;
+			handleTabClick(flexTabElement, tabs[0], firstName);
+			return;
+		}
+
+		// 找到当前激活标签页的索引
+		const currentIndex = Array.from(tabs).indexOf(activeTab);
+		// 计算下一个标签页的索引（循环）
+		const nextIndex = (currentIndex + 1) % tabs.length;
+		const nextTabElement = tabs[nextIndex];
+		const nextName = nextTabElement.dataset.tabName;
+
+		handleTabClick(flexTabElement, nextTabElement, nextName);
+	}
+
+	/**
+	 * 切换到上一个标签页（循环）
+	 * @param {HTMLElement} flexTabElement - flex_tab 元素
+	 */
+	function prevTab(flexTabElement) {
+		const config = flexTabElement._config;
+		if (!config) {
+			console.error('[FlexibleTabs] flex_tab 未初始化');
+			return;
+		}
+
+		const tabs = config.scroll.querySelectorAll('.flexible-tab');
+		if (tabs.length === 0) return;
+
+		const activeTab = config.scroll.querySelector('.flexible-tab.active');
+		if (!activeTab) {
+			// 如果没有激活的标签页，激活最后一个
+			const lastName = tabs[tabs.length - 1].dataset.tabName;
+			handleTabClick(flexTabElement, tabs[tabs.length - 1], lastName);
+			return;
+		}
+
+		// 找到当前激活标签页的索引
+		const currentIndex = Array.from(tabs).indexOf(activeTab);
+		// 计算上一个标签页的索引（循环）
+		const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+		const prevTabElement = tabs[prevIndex];
+		const prevName = prevTabElement.dataset.tabName;
+
+		handleTabClick(flexTabElement, prevTabElement, prevName);
+	}
+
+	/**
 	 * 初始化所有 flex_tab 组件
 	 */
 	function initAll() {
@@ -396,5 +492,9 @@
 		delTab,
 		removeTab,
 		setActiveTab,
+		getAllTabNames,
+		getActiveTabName,
+		nextTab,
+		prevTab,
 	};
 })();

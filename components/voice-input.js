@@ -98,6 +98,34 @@
 			if (e.ctrlKey && e.key === 'Enter') {
 				e.preventDefault();
 				handleSubmit(voiceInputElement);
+				return;
+			}
+
+			// 标签页切换快捷键：macOS 使用 Cmd+← 和 Cmd+→，Windows 使用 Ctrl+← 和 Ctrl+→
+			const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+			const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+
+			if (modifierKey && !e.shiftKey && !e.altKey) {
+				const flexTab = document.querySelector('flex_tab');
+				if (!flexTab) return;
+
+				// ArrowLeft 的 keyCode 是 37，ArrowRight 的 keyCode 是 39
+				if (e.keyCode === 37 || e.key === 'ArrowLeft') {
+					// 切换到上一个标签页
+					e.preventDefault();
+					if (window.FlexibleTabs) {
+						window.FlexibleTabs.prevTab(flexTab);
+						console.log('[VoiceInput] 快捷键切换到上一个标签页');
+					}
+				}
+				else if (e.keyCode === 39 || e.key === 'ArrowRight') {
+					// 切换到下一个标签页
+					e.preventDefault();
+					if (window.FlexibleTabs) {
+						window.FlexibleTabs.nextTab(flexTab);
+						console.log('[VoiceInput] 快捷键切换到下一个标签页');
+					}
+				}
 			}
 		});
 
