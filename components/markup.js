@@ -3151,7 +3151,7 @@ MarkUp.addExtension({
 		});
 
 		// 本地文件路径
-		line = line.replace(/([\s`])((?:\/|\w:\/\/)[^\s`]+\.\w+)\1/gi, (match, braket, url, pos) => {
+		line = line.replace(/([\s`])((?:\.\/|\/|\w:\/\/)[^\s`]+\.\w+)\1/gi, (match, braket, url, pos) => {
 			let key;
 			changed = true;
 			key = 'link-' + MarkUp.generateRandomKey();
@@ -3166,7 +3166,7 @@ MarkUp.addExtension({
 		});
 
 		// 本地目录路径
-		line = line.replace(/([\s`])((?:\/|\w:\/\/)[^\s`]+\/)\1/gi, (match, braket, url, pos) => {
+		line = line.replace(/([\s`])((?:\.\/|\/|\w:\/\/)[^\s`]+\/)\1/gi, (match, braket, url, pos) => {
 			let key;
 			changed = true;
 			key = 'link-' + MarkUp.generateRandomKey();

@@ -399,6 +399,46 @@ async function sendClearRequest(tabId) {
 	}
 }
 
+function writeMarkdownContentToContainer(container, markdown) {
+	const renderedContent = MarkUp.parse(markdown);
+	container.innerHTML = renderedContent;
+
+	// 针对本地地址做二次处理
+	let path = getTabState(CurrentCCTab).workDir;
+	if (!path.match(/\/$/)) path = path + '/';
+	let pathList = path.split('/').filter(i => i);
+	[...container.querySelectorAll('a[href*="file"]')].forEach(link => {
+		if (link.href.match(/file:\/\/\./)) {
+			let lev = path + link.href.replace(/file:\/\//, '');
+			lev = lev.split('/');
+			lev = lev.filter(item => item !== '.');
+			for (let i = lev.length - 1; i >= 0; i --) {
+				const j = lev[i];
+				if (j === '..') {
+					lev.splice(i - 1, 2);
+					i --;
+				}
+			}
+			link.href = 'file://' +  lev.join('/');
+		}
+		const list = link.innerText.split('/').filter(i => i);
+		const len = Math.min(pathList.length, list.length);
+		let fork = -1;
+		for (let i = 0; i < len; i ++) {
+			if (pathList[i] === list[i]) {
+				fork = i;
+			}
+			else {
+				break;
+			}
+		}
+		if (fork >= 0) {
+			let rel = '../'.repeat(pathList.length - 1 - fork) || './';
+			list.splice(0, fork + 1);
+			link.innerText = rel + list.join('/');
+		}
+	});
+}
 /**
  * 显示用户输入
  * @param {string} message - AI 回复内容
@@ -415,8 +455,7 @@ function showUserMessage(message) {
 	messageElement.classList.add('user-chat');
 
 	// 使用 MarkUp 渲染消息内容
-	const renderedContent = MarkUp.parse(message);
-	messageElement.innerHTML = renderedContent;
+	writeMarkdownContentToContainer(messageElement, message);
 
 	// 检测是否有工作中提示框
 	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
@@ -447,8 +486,7 @@ function showAssistantMessage(reply) {
 	messageElement.classList.add('assistant-chat');
 
 	// 使用 MarkUp 渲染消息内容
-	const renderedContent = MarkUp.parse(reply);
-	messageElement.innerHTML = renderedContent;
+	writeMarkdownContentToContainer(messageElement, reply);
 
 	// 检测是否有工作中提示框
 	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');

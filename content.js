@@ -61,7 +61,6 @@
 		if (typeof MarkUp !== 'undefined') {
 			try {
 				const html = MarkUp.fullParse(markdownContent);
-				console.log(html);
 
 				// 替换页面内容
 				document.body.innerHTML = `<div id="menu-wrapper">
@@ -96,10 +95,11 @@
 		${html.content}
 	</div>
 </div>`;
+				// 针对本地地址做二次处理
+				document.body.querySelectorAll('');
 
 				// 加载样式
 				loadStyles();
-
 				// 绑定事件
 				setupThemeToggle();
 				setupSourceToggle();
