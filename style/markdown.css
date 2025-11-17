@@ -40,6 +40,13 @@
 	box-shadow: none;
 }
 
+/* 段落 */
+.markdown-body div,
+.markdown-body p {
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+}
+
 /* 引用块样式 */
 .markdown-body blockquote {
 	margin: 10px 0px;
@@ -402,9 +409,9 @@ body.dark .markdown-body div.image-wall::-webkit-scrollbar-thumb {
 	padding-left: 1em;
 }
 .markdown-body ul li p,
-.markdown-body ol li p{
-	margin-top: 0.25em;
-	margin-bottom: 0.25em;
+.markdown-body ol li p {
+	margin-top: 0.2em;
+	margin-bottom: 0.2em;
 }
 
 .markdown-body a,

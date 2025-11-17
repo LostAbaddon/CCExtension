@@ -3129,7 +3129,8 @@ MarkUp.addExtension({
 		var changed = false;
 		if (!doc.mainParser) return [line, changed];
 
-		line = line.replace(/(['"]?)(https?:\/\/[\w\-\+=\.,:;#\?&\|\\\/%]+|mailto:([^?#]*)(?:[?#].*)?)\1/gi, (match, braket, url, pos) => {
+		// 网络 URL
+		line = line.replace(/(['"]?)((?:http|ftp|file)s?:\/\/[\w\-\+=\.,:;#\?&\|\\\/%]+|mailto:([^?#]*)(?:[?#].*)?)\1/gi, (match, braket, url, pos) => {
 			let key;
 			changed = true;
 			key = 'link-' + MarkUp.generateRandomKey();
@@ -3148,6 +3149,37 @@ MarkUp.addExtension({
 			}
 			return '%' + key + '%';
 		});
+
+		// 本地文件路径
+		line = line.replace(/([\s`])((?:\/|\w:\/\/)[^\s`]+\.\w+)\1/gi, (match, braket, url, pos) => {
+			let key;
+			changed = true;
+			key = 'link-' + MarkUp.generateRandomKey();
+			const isFocused = url.indexOf(MarkUp.FocusPlaceholder) >= 0;
+			if (isFocused) url = url.replace(MarkUp.FocusPlaceholder, '');
+			doc.links.push([url, url]);
+			let ui = ' <a ';
+			if (isFocused) ui = ui + 'class="' + MarkUp.FocusClassName + '" ';
+			ui = ui + 'href="file://' + url + '" target="_blank">' + url.replace(/^mailto:/i, '') + '</a> ';
+			caches[key] = ui;
+			return '%' + key + '%';
+		});
+
+		// 本地目录路径
+		line = line.replace(/([\s`])((?:\/|\w:\/\/)[^\s`]+\/)\1/gi, (match, braket, url, pos) => {
+			let key;
+			changed = true;
+			key = 'link-' + MarkUp.generateRandomKey();
+			const isFocused = url.indexOf(MarkUp.FocusPlaceholder) >= 0;
+			if (isFocused) url = url.replace(MarkUp.FocusPlaceholder, '');
+			doc.links.push([url, url]);
+			let ui = ' <a ';
+			if (isFocused) ui = ui + 'class="' + MarkUp.FocusClassName + '" ';
+			ui = ui + 'href="file://' + url + '" target="_blank">' + url.replace(/^mailto:/i, '') + '</a> ';
+			caches[key] = ui;
+			return '%' + key + '%';
+		});
+
 		return [line, changed];
 	},
 }, 0, 4);

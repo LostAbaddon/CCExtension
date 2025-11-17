@@ -37,6 +37,11 @@ function needsWorkDir(tabName) {
 // 初始化主题切换
 ThemeToggle.init();
 
+// 初始化 TabStorage
+TabStorage.init().catch(err => {
+	console.error('[TabStorage] 初始化失败:', err);
+});
+
 // 设置按钮点击事件
 document.addEventListener('DOMContentLoaded', () => {
 	// 监听输入框提交事件
@@ -107,9 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			// 自动切换到新标签
 			FlexibleTabs.setActiveTab(flexTab, newTabName);
+
+			// 保存新标签页数据
+			await saveTabData(newTabName);
 		});
 		// 监听删除按钮点击事件
-		flexTab.addEventListener('onDel', (event) => {
+		flexTab.addEventListener('onDel', async (event) => {
 			const tabName = event.detail.tabName;
 			console.log('[Console] 请求删除标签:', tabName);
 
@@ -119,13 +127,100 @@ document.addEventListener('DOMContentLoaded', () => {
 				console.log('[Console] 标签已删除:', tabName);
 				// 清理对应的状态
 				delete tabStates[tabName];
+				// 从数据库中删除
+				await TabStorage.deleteTab(tabName).catch(err => {
+					console.error('[Console] 删除标签页数据失败:', err);
+				});
 			}
 			else {
 				console.log('[Console] 标签删除失败:', tabName);
 			}
 		});
 	}
+
+	// 初始化时恢复所有标签页
+	restoreAllTabs();
 });
+
+/**
+ * 恢复所有标签页（从数据库）
+ */
+async function restoreAllTabs() {
+	try {
+		const flexTab = document.querySelector('flex_tab');
+		if (!flexTab) {
+			console.error('[TabStorage] 未找到 flex_tab 元素');
+			return;
+		}
+
+		// 从数据库获取所有标签页数据
+		const savedTabs = await TabStorage.getAllTabs();
+		if (!savedTabs || savedTabs.length === 0) return;
+
+		// 按更新时间排序（最新的在前面）
+		savedTabs.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+		// 恢复每个标签页
+		for (const tabData of savedTabs) {
+			const { tabName, tabContent, workDir, sessionId, messages } = tabData;
+			if (!workDir || !sessionId) continue;
+
+			// 恢复标签页状态
+			const state = getTabState(tabName);
+			state.workDir = workDir;
+			state.sessionId = sessionId;
+			state.messages = messages || [];
+			Conversations[sessionId] = tabName;
+
+			// 添加标签页到 UI（只有在不存在时才添加）
+			const existing = flexTab.querySelector(`[data-tab-name="${tabName}"]`);
+			if (!existing) {
+				const dirName = workDir.split('/').filter(Boolean).pop() || workDir;
+				const tabContent = `<span>${dirName}</span>`;
+				FlexibleTabs.addTab(flexTab, tabName, tabContent);
+			}
+
+			console.log(`[Console] 恢复标签页: ${tabName}, 工作目录: ${workDir}, 消息数: ${messages.length}`);
+		}
+
+		// 激活第一个标签页
+		if (savedTabs.length > 0) {
+			const firstTabName = savedTabs[0].tabName;
+			FlexibleTabs.setActiveTab(flexTab, firstTabName);
+		}
+	}
+	catch (error) {
+		console.error('[Console] 恢复标签页失败:', error);
+	}
+}
+/**
+ * 保存标签页数据到数据库
+ * @param {string} tabName - Tab 名称
+ */
+async function saveTabData(tabName) {
+	try {
+		const state = getTabState(tabName);
+
+		// 获取标签页的显示内容
+		const flexTab = document.querySelector('flex_tab');
+		if (!flexTab) return;
+
+		const tabElement = flexTab.querySelector(`[data-tab-name="${tabName}"]`);
+		if (!tabElement) return;
+
+		// 保存到数据库
+		await TabStorage.saveTab(tabName, {
+			workDir: state.workDir,
+			sessionId: state.sessionId,
+			messages: state.messages,
+		});
+
+		console.log(`[TabStorage] 标签页 "${tabName}" 数据已保存`);
+	}
+	catch (error) {
+		console.error(`[Console] 保存标签页 "${tabName}" 数据失败:`, error);
+	}
+}
 
 /**
  * 恢复 tab 的内容
@@ -201,6 +296,8 @@ async function handleMessageSubmit(message) {
 		// 重置 sessionId 和消息缓存
 		state.sessionId = null;
 		state.messages = [];
+		// 保存清空后的状态
+		await saveTabData(CurrentCCTab);
 		return;
 	}
 
@@ -210,6 +307,9 @@ async function handleMessageSubmit(message) {
 	// 提交消息到 CCCore
 	state.messages.push({ type: 'user', content: message });
 	await sendMessageToCore(CurrentCCTab, message, state);
+
+	// 保存标签页数据
+	await saveTabData(CurrentCCTab);
 }
 
 /**
@@ -248,12 +348,18 @@ async function sendMessageToCore(tabId, message, state) {
 			state.sessionId = result.sessionId;
 			state.messages.push({ type: 'ai', content: result.reply });
 			if (tabId === CurrentCCTab) showAssistantMessage(result.reply);
+
+			// 保存标签页数据（包含新的 AI 回复）
+			await saveTabData(tabId);
 		}
 	}
 	catch (error) {
 		console.error('[Console] 消息提交失败:', error);
 		state.messages.push({ type: 'error', content: error.message });
 		if (tabId === CurrentCCTab) showErrorMessage('消息提交失败: ' + error.message);
+
+		// 保存标签页数据（包含错误信息）
+		await saveTabData(tabId);
 	}
 	finally {
 		// 移除"工作中"提示框
@@ -711,6 +817,11 @@ const updateToolUsage = (sessionId, toolName, type) => {
 		state.messages.push({
 			type: "tool",
 			content: toolName
+		});
+
+		// 保存标签页数据（包含工具使用信息）
+		saveTabData(tabId).catch(err => {
+			console.error('[Console] 保存工具使用信息失败:', err);
 		});
 	}
 };

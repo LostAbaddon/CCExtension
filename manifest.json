@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Claudius",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Claude Code in the Shell",
   "permissions": [
     "notifications",
@@ -32,7 +32,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "js": [
         "components/markup.js",
         "content.js"
@@ -51,7 +53,9 @@
         "style/theme-toggle.css",
         "pages/settings.html"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
