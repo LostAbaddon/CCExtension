@@ -3130,11 +3130,11 @@ MarkUp.addExtension({
 		if (!doc.mainParser) return [line, changed];
 
 		// 网络 URL
-		line = line.replace(/(['"]?)((?:http|ftp|file)s?:\/\/[\w\-\+=\.,:;#\?&\|\\\/%]+|mailto:([^?#]*)(?:[?#].*)?)\1/gi, (match, braket, url, pos) => {
+		line = line.replace(/(['"`]?)((http|ftp|file)s?:\/\/[\w\-\+=\.,:;#\?&\|\\\/%]+|mailto:([^?#]*)(?:[?#].*)?)\1/gi, (match, braket, url, protocol, pos) => {
 			let key;
 			changed = true;
 			key = 'link-' + MarkUp.generateRandomKey();
-			if (!!braket) {
+			if (!!braket && protocol !== 'file') {
 				match = match.replace(MarkUp.FocusPlaceholder, '<span class="' + MarkUp.FocusClassName + '"></span>');
 				caches[key] = match;
 			}
