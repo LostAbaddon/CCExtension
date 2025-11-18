@@ -441,7 +441,7 @@
 			console.error('[VoiceInput] voice_input 未初始化');
 			return '';
 		}
-		return config.textarea.value;
+		return config.textarea.value.trim();
 	}
 	/**
 	 * 设置输入值
