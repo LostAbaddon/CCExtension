@@ -9,6 +9,15 @@
 	const LongPressDuration = 1000;
 
 	/**
+	 * 初始化所有 voice_input 组件
+	 */
+	function initAll() {
+		const voiceInputs = document.querySelectorAll('voice_input');
+		voiceInputs.forEach(voiceInput => {
+			initVoiceInput(voiceInput);
+		});
+	}
+	/**
 	 * 初始化单个 voice_input 组件
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
 	 */
@@ -200,6 +209,21 @@
 		// 初始化高度
 		autoResize(voiceInputElement, textarea);
 	}
+	/**
+	 * 停止语音识别
+	 * @param {HTMLElement} voiceInputElement - voice_input 元素
+	 */
+	function stopRecording(voiceInputElement) {
+		const config = voiceInputElement._config;
+		if (!config) {
+			console.error('[VoiceInput] voice_input 未初始化');
+			return;
+		}
+		if (config.isRecording && config.recognition) {
+			console.log('[VoiceInput] 停止录音');
+			config.recognition.stop();
+		}
+	}
 
 	/**
 	 * 自动调整 textarea 高度
@@ -308,6 +332,17 @@
 				let lastText = last.isFinal ? last[0].transcript : '';
 				console.log('[VoiceInput] 长按模式识别结果:', interimText, '最后之词:', lastText);
 
+				// 如果识别出了最后确定的单词，触发事件
+				if (lastText) {
+					const wordEvent = new CustomEvent('onFinalWord', {
+						detail: {
+							word: lastText
+						},
+						bubbles: true,
+					});
+					voiceInputElement.dispatchEvent(wordEvent);
+				}
+
 				// 使用保存的前后文本拼接
 				textarea.value = config.savedBeforeText + interimText + config.savedAfterText;
 				// 选中识别的文本
@@ -376,7 +411,6 @@
 			alert('启动语音识别失败: ' + error.message);
 		}
 	}
-
 	/**
 	 * 处理提交
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
@@ -409,7 +443,6 @@
 		}
 		return config.textarea.value;
 	}
-
 	/**
 	 * 设置输入值
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
@@ -432,7 +465,6 @@
 	function clear(voiceInputElement) {
 		setValue(voiceInputElement, '');
 	}
-
 	/**
 	 * 聚焦输入框
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
@@ -444,16 +476,6 @@
 			return;
 		}
 		config.textarea.focus();
-	}
-
-	/**
-	 * 初始化所有 voice_input 组件
-	 */
-	function initAll() {
-		const voiceInputs = document.querySelectorAll('voice_input');
-		voiceInputs.forEach(voiceInput => {
-			initVoiceInput(voiceInput);
-		});
 	}
 
 	// 页面加载完成后自动初始化
@@ -472,5 +494,6 @@
 		setValue,
 		clear,
 		focus,
+		stopRecording,
 	};
 })();

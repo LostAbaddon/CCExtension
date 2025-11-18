@@ -66,6 +66,34 @@ document.addEventListener('DOMContentLoaded', () => {
 			const { newHeight } = event.detail;
 			conversation_container.style.bottom = (newHeight + 30) + 'px';
 		});
+		// 监听语音识别确定的单词
+		mainInput.addEventListener('onFinalWord', (event) => {
+			const word = event.detail.word;
+			// 只处理"提交"命令
+			if (word !== '提交') {
+				return;
+			}
+
+			// 获取当前输入框的值
+			const currentValue = VoiceInput.getValue(mainInput);
+			// 检查是否以"提交"结尾
+			if (!currentValue.endsWith('提交')) {
+				console.log('[Console] "提交"不在末尾，停止操作');
+				return;
+			}
+
+			// 停止语音识别
+			VoiceInput.stopRecording(mainInput);
+			// 删除末尾的"提交"
+			const newValue = currentValue.slice(0, -2);
+			VoiceInput.setValue(mainInput, newValue);
+			// 触发提交
+			const submitEvent = new CustomEvent('onSubmit', {
+				detail: { value: newValue },
+				bubbles: true,
+			});
+			mainInput.dispatchEvent(submitEvent);
+		});
 	}
 
 	const settingsBtn = document.getElementById('settings-btn');
