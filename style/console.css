@@ -293,6 +293,19 @@ body {
 	height: 20px;
 }
 
+/* 导航按钮特殊样式 */
+.nav-btn {
+	/* 导航按钮使用稍微不同的颜色以区分 */
+}
+
+.nav-up-btn:hover {
+	/* 向上按钮悬停时可以添加特殊效果 */
+}
+
+.nav-down-btn:hover {
+	/* 向下按钮悬停时可以添加特殊效果 */
+}
+
 /* 底部输入区域 */
 #input-area-wrapper {
 	position: fixed;

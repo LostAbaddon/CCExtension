@@ -468,6 +468,16 @@ function showUserMessage(message) {
 		return;
 	}
 
+	// 在添加新消息前，清除当前最后一个对话框的操作区域缓存
+	const allMessages = conversationContainer.querySelectorAll('.chat-item.user-chat, .chat-item.assistant-chat');
+	if (allMessages.length > 0) {
+		const lastMessage = allMessages[allMessages.length - 1];
+		if (lastMessage._actionsContainer) {
+			lastMessage._actionsContainer.remove();
+			lastMessage._actionsContainer = null;
+		}
+	}
+
 	const messageElement = document.createElement('div');
 	messageElement.classList.add('markdown-body');
 	messageElement.classList.add('chat-item');
@@ -521,6 +531,16 @@ function showAssistantMessage(reply) {
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) {
 		return;
+	}
+
+	// 在添加新消息前，清除当前最后一个对话框的操作区域缓存
+	const allMessages = conversationContainer.querySelectorAll('.chat-item.user-chat, .chat-item.assistant-chat');
+	if (allMessages.length > 0) {
+		const lastMessage = allMessages[allMessages.length - 1];
+		if (lastMessage._actionsContainer) {
+			lastMessage._actionsContainer.remove();
+			lastMessage._actionsContainer = null;
+		}
 	}
 
 	const messageElement = document.createElement('div');
@@ -987,6 +1007,17 @@ function throttle(func, delay) {
 }
 
 /**
+ * 跳转到指定对话框
+ * @param {HTMLElement} targetElement - 目标对话框元素
+ */
+function scrollToMessage(targetElement) {
+	targetElement.scrollIntoView({
+		behavior: 'smooth',
+		block: 'start'
+	});
+}
+
+/**
  * 显示消息操作区域
  * @param {HTMLElement} messageElement - 消息元素
  * @param {boolean} isUserMessage - 是否为用户消息
@@ -1004,6 +1035,53 @@ function showMessageActions(messageElement, isUserMessage) {
 	actionsContainer = document.createElement('div');
 	actionsContainer.classList.add('chat-item-actions');
 	messageElement._actionsContainer = actionsContainer;
+
+	// 获取所有用户消息和AI消息
+	const conversationContainer = document.getElementById('conversation_container');
+	const allMessages = Array.from(conversationContainer.querySelectorAll('.chat-item.user-chat, .chat-item.assistant-chat'));
+	const currentIndex = allMessages.indexOf(messageElement);
+
+	// 创建向上导航按钮(如果不是第一个)
+	if (currentIndex > 0) {
+		const upBtn = document.createElement('button');
+		upBtn.classList.add('action-btn', 'nav-btn', 'nav-up-btn');
+		upBtn.title = '跳转到上一个对话框';
+		upBtn.innerHTML = `
+			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		`;
+		upBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			hideMessageActions(messageElement);
+			const prevMessage = allMessages[currentIndex - 1];
+			if (prevMessage) {
+				scrollToMessage(prevMessage);
+			}
+		});
+		actionsContainer.appendChild(upBtn);
+	}
+
+	// 创建向下导航按钮(如果不是最后一个)
+	if (currentIndex < allMessages.length - 1) {
+		const downBtn = document.createElement('button');
+		downBtn.classList.add('action-btn', 'nav-btn', 'nav-down-btn');
+		downBtn.title = '跳转到下一个对话框';
+		downBtn.innerHTML = `
+			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M12 5V19M12 19L19 12M12 19L5 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		`;
+		downBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			hideMessageActions(messageElement);
+			const nextMessage = allMessages[currentIndex + 1];
+			if (nextMessage) {
+				scrollToMessage(nextMessage);
+			}
+		});
+		actionsContainer.appendChild(downBtn);
+	}
 
 	// 创建复制按钮
 	const copyBtn = document.createElement('button');
