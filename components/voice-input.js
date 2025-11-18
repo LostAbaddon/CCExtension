@@ -80,6 +80,10 @@
 			lastHeight: 0,
 			longPressTimer: null, // 长按计时器
 			isLongPress: false, // 是否触发了长按
+			// 长按模式下保存的状态
+			savedCursorPosition: 0, // 保存的光标位置
+			savedBeforeText: '', // 光标前的文本
+			savedAfterText: '', // 光标后的文本
 		};
 
 		// 自动调整高度
@@ -91,7 +95,10 @@
 			inputWrapper.classList.add('focused');
 		});
 		textarea.addEventListener('blur', () => {
-			inputWrapper.classList.remove('focused');
+			// 如果正在录音，保持 focused 状态（语音按钮继续显示）
+			if (!voiceInputElement._config.isRecording) {
+				inputWrapper.classList.remove('focused');
+			}
 		});
 		// 支持 Ctrl+Enter 提交
 		textarea.addEventListener('keydown', (e) => {
@@ -277,40 +284,53 @@
 			config.isRecording = true;
 			voiceBtn.classList.add('recording');
 			lastResultIndex = -1;
+
+			// 长按模式下保存光标位置和前后文本
+			if (isContinuous) {
+				const cursorPos = textarea.selectionStart;
+				config.savedCursorPosition = cursorPos;
+				config.savedBeforeText = textarea.value.substring(0, cursorPos);
+				config.savedAfterText = textarea.value.substring(cursorPos);
+				console.log('[VoiceInput] 长按模式：保存光标位置', cursorPos);
+			}
 		};
 		recognition.onresult = (event) => {
-			const cursorPosition = textarea.selectionStart;
 			let newPosition, transcript;
 			if (isContinuous) {
-				// 持续识别模式：只处理新增的结果
-				let newTranscript = '', latestResultIndex = lastResultIndex;
-				for (let i = lastResultIndex + 1; i < event.results.length; i++) {
-					if (event.results[i].isFinal) {
-						newTranscript += event.results[i][0].transcript;
-						latestResultIndex = i;
-					}
-					else {
-						break;
-					}
+				// 长按模式：处理所有结果（包括中间结果）
+				let interimText = '';
+
+				// 累计识别结果
+				for (let i = 0; i < event.results.length; i++) {
+					interimText += event.results[i][0].transcript;
 				}
-				console.log('[VoiceInput] 新增识别结果:', newTranscript);
-				lastResultIndex = latestResultIndex;
-				transcript = newTranscript;
+				const last = event.results[event.results.length - 1];
+				let lastText = last.isFinal ? last[0].transcript : '';
+				console.log('[VoiceInput] 长按模式识别结果:', interimText, '最后之词:', lastText);
+
+				// 使用保存的前后文本拼接
+				textarea.value = config.savedBeforeText + interimText + config.savedAfterText;
+				// 选中识别的文本
+				const start = config.savedBeforeText.length;
+				const end = start + interimText.length;
+				textarea.setSelectionRange(start, end);
 			}
 			// 单次识别模式：只取第一个结果
 			else {
+				const cursorPosition = textarea.selectionStart;
 				transcript = event.results[0][0].transcript;
 				console.log('[VoiceInput] 单次识别结果:', transcript);
+
+				// 在光标位置插入识别的文本
+				const before = textarea.value.substring(0, cursorPosition);
+				const after = textarea.value.substring(cursorPosition);
+				textarea.value = before + transcript + after;
+				newPosition = cursorPosition + transcript.length;
+
+				// 更新光标位置
+				textarea.setSelectionRange(newPosition, newPosition);
 			}
 
-			// 在光标位置插入识别的文本
-			const before = textarea.value.substring(0, cursorPosition);
-			const after = textarea.value.substring(cursorPosition);
-			textarea.value = before + transcript + after;
-			newPosition = cursorPosition + transcript.length;
-
-			// 更新光标位置
-			textarea.setSelectionRange(newPosition, newPosition);
 			// 触发 input 事件以自动调整高度
 			textarea.dispatchEvent(new Event('input'));
 			// 聚焦回 textarea
@@ -333,6 +353,16 @@
 			config.isRecording = false;
 			voiceBtn.classList.remove('recording');
 			config.recognition = null;
+
+			// 清空保存的字段
+			config.savedCursorPosition = 0;
+			config.savedBeforeText = '';
+			config.savedAfterText = '';
+
+			// 如果 textarea 失去了焦点，移除 focused 类（隐藏语音按钮）
+			if (document.activeElement !== textarea) {
+				inputWrapper.classList.remove('focused');
+			}
 		};
 
 		// 开始识别

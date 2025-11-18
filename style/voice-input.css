@@ -44,7 +44,7 @@
 .voice-input-textarea {
 	flex: 1;
 	min-height: 32px;
-	max-height: inherit;
+	max-height: 100%;
 	padding: 0;
 	border: none;
 	background: transparent;
