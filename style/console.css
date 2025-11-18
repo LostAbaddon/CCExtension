@@ -141,6 +141,7 @@ body {
 }
 
 #conversation_container .chat-item {
+	position: relative;
 	margin-bottom: 12px;
 	padding: 12px;
 	border-radius: 0px;
@@ -220,6 +221,76 @@ body {
 	100% {
 		transform: rotate(360deg);
 	}
+}
+
+/* 对话框操作区域 */
+.chat-item-actions {
+	display: flex;
+	gap: 8px;
+	padding: 6px;
+	background-color: rgba(0, 0, 0, 0.85);
+	border: 1px solid rgba(127, 127, 127, 0.3);
+	border-radius: 8px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.2s ease;
+	z-index: 10;
+}
+
+[theme="light"] .chat-item-actions {
+	background-color: rgba(255, 255, 255, 0.95);
+	border: 1px solid rgba(127, 127, 127, 0.3);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 显示操作区域 */
+.chat-item-actions.visible {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* 绝对定位（对话框顶部可见时） */
+.chat-item-actions.position-absolute {
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+/* 固定定位（对话框顶部不可见时） */
+.chat-item-actions.position-fixed {
+	position: fixed;
+	/* top 和 right 由 JS 动态计算 */
+}
+
+/* 操作按钮 */
+.action-btn {
+	width: 32px;
+	height: 32px;
+	padding: 6px;
+	border: none;
+	background-color: transparent;
+	color: rgba(200, 200, 200, 1.0);
+	border-radius: 6px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+}
+
+[theme="light"] .action-btn {
+	color: rgba(60, 60, 60, 1.0);
+}
+
+.action-btn:hover {
+	background-color: var(--emphasize-color);
+	color: var(--back-color);
+	transform: scale(1.1);
+}
+
+.action-btn svg {
+	width: 20px;
+	height: 20px;
 }
 
 /* 底部输入区域 */

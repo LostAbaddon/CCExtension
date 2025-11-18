@@ -418,6 +418,7 @@ async function sendClearRequest(tabId) {
 }
 
 function writeMarkdownContentToContainer(container, markdown) {
+	container._rawContent = markdown;
 	const renderedContent = MarkUp.parse(markdown);
 	container.innerHTML = renderedContent;
 
@@ -475,6 +476,30 @@ function showUserMessage(message) {
 	// 使用 MarkUp 渲染消息内容
 	writeMarkdownContentToContainer(messageElement, message);
 
+	// 添加鼠标事件监听
+	let scrollListener = null;
+	messageElement.addEventListener('mouseenter', () => {
+		showMessageActions(messageElement, true);
+
+		// 监听滚动事件，动态更新位置
+		scrollListener = throttle(() => {
+			const actionsContainer = messageElement._actionsContainer;
+			if (actionsContainer && actionsContainer.classList.contains('visible')) {
+				updateActionsPosition(messageElement, actionsContainer);
+			}
+		}, 50);
+
+		conversationContainer.addEventListener('scroll', scrollListener);
+	});
+
+	messageElement.addEventListener('mouseleave', () => {
+		hideMessageActions(messageElement);
+		if (scrollListener) {
+			conversationContainer.removeEventListener('scroll', scrollListener);
+			scrollListener = null;
+		}
+	});
+
 	// 检测是否有工作中提示框
 	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
 	// 添加到提示框前
@@ -505,6 +530,30 @@ function showAssistantMessage(reply) {
 
 	// 使用 MarkUp 渲染消息内容
 	writeMarkdownContentToContainer(messageElement, reply);
+
+	// 添加鼠标事件监听
+	let scrollListener = null;
+	messageElement.addEventListener('mouseenter', () => {
+		showMessageActions(messageElement, false);
+
+		// 监听滚动事件，动态更新位置
+		scrollListener = throttle(() => {
+			const actionsContainer = messageElement._actionsContainer;
+			if (actionsContainer && actionsContainer.classList.contains('visible')) {
+				updateActionsPosition(messageElement, actionsContainer);
+			}
+		}, 50);
+
+		conversationContainer.addEventListener('scroll', scrollListener);
+	});
+
+	messageElement.addEventListener('mouseleave', () => {
+		hideMessageActions(messageElement);
+		if (scrollListener) {
+			conversationContainer.removeEventListener('scroll', scrollListener);
+			scrollListener = null;
+		}
+	});
 
 	// 检测是否有工作中提示框
 	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
@@ -918,6 +967,226 @@ function hideWorkingIndicator() {
 	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
 	if (!workingIndicator) return;
 	workingIndicator.parentElement.removeChild(workingIndicator);
+}
+
+/**
+ * 节流函数
+ * @param {Function} func - 要节流的函数
+ * @param {number} delay - 延迟时间（毫秒）
+ * @returns {Function} 节流后的函数
+ */
+function throttle(func, delay) {
+	let lastCall = 0;
+	return function(...args) {
+		const now = Date.now();
+		if (now - lastCall >= delay) {
+			lastCall = now;
+			func.apply(this, args);
+		}
+	};
+}
+
+/**
+ * 显示消息操作区域
+ * @param {HTMLElement} messageElement - 消息元素
+ * @param {boolean} isUserMessage - 是否为用户消息
+ */
+function showMessageActions(messageElement, isUserMessage) {
+	// 检查是否已存在操作区域
+	let actionsContainer = messageElement._actionsContainer;
+	if (actionsContainer) {
+		actionsContainer.classList.add('visible');
+		updateActionsPosition(messageElement, actionsContainer);
+		return;
+	}
+
+	// 创建操作区域
+	actionsContainer = document.createElement('div');
+	actionsContainer.classList.add('chat-item-actions');
+	messageElement._actionsContainer = actionsContainer;
+
+	// 创建复制按钮
+	const copyBtn = document.createElement('button');
+	copyBtn.classList.add('action-btn', 'copy-btn');
+	copyBtn.title = '复制内容';
+	copyBtn.innerHTML = `
+		<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path d="M8 4V16C8 17.1046 8.89543 18 10 18H18C19.1046 18 20 17.1046 20 16V7.24162C20 6.7034 19.7831 6.18789 19.3982 5.81161L16.6569 3.11612C16.2849 2.75216 15.7877 2.5 15.2588 2.5H10C8.89543 2.5 8 3.39543 8 4.5Z" stroke="currentColor" stroke-width="2"/>
+			<path d="M16 18V20C16 21.1046 15.1046 22 14 22H6C4.89543 22 4 21.1046 4 20V9C4 7.89543 4.89543 7 6 7H8" stroke="currentColor" stroke-width="2"/>
+		</svg>
+	`;
+	copyBtn.addEventListener('click', (e) => {
+		e.stopPropagation();
+		copyMessageContent(messageElement);
+	});
+	actionsContainer.appendChild(copyBtn);
+
+	// 如果是 AI 消息，添加下载按钮
+	if (!isUserMessage) {
+		const downloadBtn = document.createElement('button');
+		downloadBtn.classList.add('action-btn', 'download-btn');
+		downloadBtn.title = '下载为文件';
+		downloadBtn.innerHTML = `
+			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M12 3V16M12 16L16 11.625M12 16L8 11.625" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M3 17V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+			</svg>
+		`;
+		downloadBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			downloadMessageAsFile(messageElement);
+		});
+		actionsContainer.appendChild(downloadBtn);
+	}
+
+	// 添加到消息元素
+	messageElement.appendChild(actionsContainer);
+
+	// 计算位置
+	updateActionsPosition(messageElement, actionsContainer);
+
+	// 显示操作区域
+	actionsContainer.classList.add('visible');
+}
+/**
+ * 更新操作区域位置
+ * @param {HTMLElement} messageElement - 消息元素
+ * @param {HTMLElement} actionsContainer - 操作区域容器
+ */
+function updateActionsPosition(messageElement, actionsContainer) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) return;
+
+	const messageRect = messageElement.getBoundingClientRect();
+	const containerRect = conversationContainer.getBoundingClientRect();
+
+	// 判断对话框顶部是否在可见区域内
+	if (messageRect.top >= containerRect.top) {
+		// 情况 1：对话框顶部可见，使用绝对定位
+		actionsContainer.classList.remove('position-fixed');
+		actionsContainer.classList.add('position-absolute');
+		actionsContainer.style.right = '';
+		actionsContainer.style.top = '';
+	}
+	else {
+		// 情况 2：对话框顶部不可见，使用固定定位
+		actionsContainer.classList.remove('position-absolute');
+		actionsContainer.classList.add('position-fixed');
+		const rightOffset = window.innerWidth - containerRect.right;
+		actionsContainer.style.right = (rightOffset + 20) + 'px'; // 20px 是容器的 padding
+		actionsContainer.style.top = (containerRect.top + 20) + 'px'; // 20px 是容器的 padding
+	}
+}
+/**
+ * 隐藏消息操作区域
+ * @param {HTMLElement} messageElement - 消息元素
+ */
+function hideMessageActions(messageElement) {
+	const actionsContainer = messageElement.querySelector('.chat-item-actions');
+	if (actionsContainer) {
+		actionsContainer.classList.remove('visible');
+	}
+}
+
+/**
+ * 复制消息内容到剪贴板
+ * @param {HTMLElement} messageElement - 消息元素
+ */
+function copyMessageContent(messageElement) {
+	// 获取消息文本内容
+	const textContent = messageElement._rawContent || messageElement.innerText || messageElement.textContent;
+
+	// 使用剪贴板 API
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		navigator.clipboard.writeText(textContent).then(() => {
+			Notification.show(null, '内容已复制到剪贴板', 'middleTop', 'success', 2000);
+		}).catch(err => {
+			console.error('[Console] 复制失败:', err);
+			Notification.show(null, '复制失败', 'middleTop', 'error', 2000);
+		});
+	}
+	else {
+		// 降级方案：使用传统的 execCommand
+		const textArea = document.createElement('textarea');
+		textArea.value = textContent;
+		textArea.style.position = 'fixed';
+		textArea.style.left = '-9999px';
+		document.body.appendChild(textArea);
+		textArea.select();
+		try {
+			document.execCommand('copy');
+			Notification.show(null, '内容已复制到剪贴板', 'middleTop', 'success', 2000);
+		}
+		catch (err) {
+			console.error('[Console] 复制失败:', err);
+			Notification.show(null, '复制失败', 'middleTop', 'error', 2000);
+		}
+		document.body.removeChild(textArea);
+	}
+}
+/**
+ * 下载消息内容为文件
+ * @param {HTMLElement} messageElement - 消息元素
+ */
+async function downloadMessageAsFile(messageElement) {
+	// 获取消息文本内容
+	const textContent = messageElement._rawContent || messageElement.innerText || messageElement.textContent;
+
+	// 生成文件名
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+	const filename = `${CurrentCCTab}-${timestamp}.md`;
+
+	// 创建 Blob 对象
+	const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+
+	// 优先使用 File System Access API（现代浏览器）
+	if (window.showSaveFilePicker) {
+		const filetype = {
+			description: 'Markdown',
+			accept: {
+				'text/markdown': ['.md'],
+			},
+		};
+
+		try {
+			const saveHandler = await window.showSaveFilePicker({
+				startIn: "downloads",
+				suggestedName: filename,
+				types: [filetype],
+			});
+
+			const writer = await saveHandler.createWritable();
+			await writer.write(blob);
+			await writer.close();
+
+			Notification.show(null, '文件已保存', 'middleTop', 'success', 2000);
+			return;
+		}
+		catch (err) {
+			// 用户取消保存（错误码 20）
+			if (err.code === 20) {
+				return;
+			}
+			console.error('[Console] 使用 File System Access API 保存失败:', err);
+			// 继续使用降级方案
+		}
+	}
+
+	// 降级方案：使用传统的 Blob + createObjectURL 方式
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+
+	// 触发下载
+	document.body.appendChild(link);
+	link.click();
+
+	// 清理
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
+
+	Notification.show(null, '文件已下载', 'middleTop', 'success', 2000);
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
