@@ -640,7 +640,7 @@ function showErrorMessage(error) {
 	else {
 		conversationContainer.appendChild(messageElement);
 	}
-	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+	// conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
 /**
  * 显示错误消息
@@ -674,7 +674,7 @@ function showToolUsingMessage(toolUsage, status) {
 	else {
 		conversationContainer.appendChild(messageElement);
 	}
-	conversationContainer.scrollTop = conversationContainer.scrollHeight;
+	// conversationContainer.scrollTop = conversationContainer.scrollHeight;
 
 	return name;
 }
@@ -954,7 +954,13 @@ const updateToolUsage = (sessionId, toolName, type) => {
 
 	if (type === 'start') {
 		if (tabId !== CurrentCCTab) return; // 不是当前标签页或没有对应标签页
-		const toolId = showToolUsingMessage(toolName);
+
+		// 判断是否是 Skill 相关的工具
+		const isSkillTool = toolName === 'Skill' || toolName.startsWith('Skill (');
+
+		// Skill 工具直接显示为已完成状态，其他工具显示加载状态
+		const initialStatus = isSkillTool ? 'tool-used' : 'tool-using';
+		const toolId = showToolUsingMessage(toolName, initialStatus);
 		ToolUsages[toolName] = [toolId, sessionId];
 	}
 	else if (type === 'end') {
