@@ -116,33 +116,7 @@
 				handleSubmit(voiceInputElement);
 				return;
 			}
-
-			// 标签页切换快捷键：macOS 使用 Cmd+← 和 Cmd+→，Windows 使用 Ctrl+← 和 Ctrl+→
-			const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-			const modifierKey = isMac ? e.metaKey : e.ctrlKey;
-
-			if (modifierKey && !e.shiftKey && !e.altKey) {
-				const flexTab = document.querySelector('flex_tab');
-				if (!flexTab) return;
-
-				// ArrowLeft 的 keyCode 是 37，ArrowRight 的 keyCode 是 39
-				if (e.keyCode === 37 || e.key === 'ArrowLeft') {
-					// 切换到上一个标签页
-					e.preventDefault();
-					if (window.FlexibleTabs) {
-						window.FlexibleTabs.prevTab(flexTab);
-						console.log('[VoiceInput] 快捷键切换到上一个标签页');
-					}
-				}
-				else if (e.keyCode === 39 || e.key === 'ArrowRight') {
-					// 切换到下一个标签页
-					e.preventDefault();
-					if (window.FlexibleTabs) {
-						window.FlexibleTabs.nextTab(flexTab);
-						console.log('[VoiceInput] 快捷键切换到下一个标签页');
-					}
-				}
-			}
+			// 标签页切换快捷键已移至全局监听器处理
 		});
 
 		// 鼠标按下时启动长按计时器
@@ -478,12 +452,74 @@
 		config.textarea.focus();
 	}
 
+	/**
+	 * 初始化全局快捷键监听器
+	 */
+	function initGlobalKeyboardListener() {
+		// 防止重复初始化
+		if (window._globalKeyboardListener) {
+			return;
+		}
+
+		// 标记已初始化
+		window._globalKeyboardListener = true;
+
+		// 添加文档级键盘事件监听（使用捕获阶段）
+		document.addEventListener('keydown', handleGlobalKeydown, true);
+
+		console.log('[VoiceInput] 全局快捷键监听器已初始化');
+	}
+
+	/**
+	 * 处理全局键盘事件
+	 * @param {KeyboardEvent} event
+	 */
+	function handleGlobalKeydown(event) {
+		// 处理快捷键
+		handleShortcutKeys(event);
+	}
+
+	/**
+	 * 处理快捷键
+	 * @param {KeyboardEvent} event
+	 */
+	function handleShortcutKeys(event) {
+		// 标签页切换快捷键：macOS 使用 Cmd+Shift+← 和 Cmd+Shift+→，Windows 使用 Ctrl+Shift+← 和 Ctrl+Shift+→
+		const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+		const modifierKey = isMac ? event.metaKey : event.ctrlKey;
+
+		if (modifierKey && event.shiftKey && !event.altKey) {
+			const flexTab = document.querySelector('flex_tab');
+			if (!flexTab || !window.FlexibleTabs) return;
+
+			// ArrowLeft 的 keyCode 是 37，ArrowRight 的 keyCode 是 39
+			if (event.keyCode === 37 || event.key === 'ArrowLeft') {
+				// 切换到上一个标签页
+				event.preventDefault();
+				event.stopPropagation();
+				window.FlexibleTabs.prevTab(flexTab);
+				console.log('[VoiceInput] 全局快捷键切换到上一个标签页');
+			}
+			else if (event.keyCode === 39 || event.key === 'ArrowRight') {
+				// 切换到下一个标签页
+				event.preventDefault();
+				event.stopPropagation();
+				window.FlexibleTabs.nextTab(flexTab);
+				console.log('[VoiceInput] 全局快捷键切换到下一个标签页');
+			}
+		}
+	}
+
 	// 页面加载完成后自动初始化
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', initAll);
+		document.addEventListener('DOMContentLoaded', () => {
+			initAll();
+			initGlobalKeyboardListener();
+		});
 	}
 	else {
 		initAll();
+		initGlobalKeyboardListener();
 	}
 
 	// 导出 API 到全局

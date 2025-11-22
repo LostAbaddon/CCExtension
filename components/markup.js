@@ -3134,7 +3134,7 @@ MarkUp.addExtension({
 			let key;
 			changed = true;
 			key = 'link-' + MarkUp.generateRandomKey();
-			if (!!braket && protocol !== 'file') {
+			if (!!braket && braket !== '`' && protocol !== 'file') {
 				match = match.replace(MarkUp.FocusPlaceholder, '<span class="' + MarkUp.FocusClassName + '"></span>');
 				caches[key] = match;
 			}

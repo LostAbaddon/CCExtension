@@ -55,6 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			console.log('[Console] 提交消息:', message);
 
+			// 检查是否是中断命令
+			if (message === '/break' || message === '/shutdown') {
+				handleInterruptCommand();
+				// 清空输入框
+				VoiceInput.clear(mainInput);
+				return;
+			}
+
 			// 这里处理消息发送逻辑
 			handleMessageSubmit(message);
 
@@ -69,30 +77,48 @@ document.addEventListener('DOMContentLoaded', () => {
 		// 监听语音识别确定的单词
 		mainInput.addEventListener('onFinalWord', (event) => {
 			const word = event.detail.word;
-			// 只处理"提交"命令
-			if (word !== '提交') {
-				return;
-			}
 
 			// 获取当前输入框的值
 			const currentValue = VoiceInput.getValue(mainInput);
-			// 检查是否以"提交"结尾
-			if (!currentValue.endsWith('提交')) {
-				console.log('[Console] "提交"不在末尾，停止操作');
+
+			// 处理"提交"命令
+			if (word === '提交') {
+				// 检查是否以"提交"结尾
+				if (!currentValue.endsWith('提交')) {
+					console.log('[Console] "提交"不在末尾，停止操作');
+					return;
+				}
+
+				// 停止语音识别
+				VoiceInput.stopRecording(mainInput);
+				// 删除末尾的"提交"
+				const newValue = currentValue.slice(0, -2);
+				VoiceInput.setValue(mainInput, newValue);
+				// 触发提交
+				const submitEvent = new CustomEvent('onSubmit', {
+					detail: { value: newValue },
+					bubbles: true,
+				});
+				mainInput.dispatchEvent(submitEvent);
 				return;
 			}
 
-			// 停止语音识别
-			VoiceInput.stopRecording(mainInput);
-			// 删除末尾的"提交"
-			const newValue = currentValue.slice(0, -2);
-			VoiceInput.setValue(mainInput, newValue);
-			// 触发提交
-			const submitEvent = new CustomEvent('onSubmit', {
-				detail: { value: newValue },
-				bubbles: true,
-			});
-			mainInput.dispatchEvent(submitEvent);
+			// 处理"停止"和"终止"命令
+			if (word === '停止' || word === '终止') {
+				// 检查是否以对应词结尾
+				if (!currentValue.endsWith(word)) {
+					console.log(`[Console] "${word}"不在末尾，停止操作`);
+					return;
+				}
+
+				// 停止语音识别
+				VoiceInput.stopRecording(mainInput);
+				// 清空输入框
+				VoiceInput.clear(mainInput);
+				// 执行中断操作
+				handleInterruptCommand();
+				return;
+			}
 		});
 	}
 
@@ -298,6 +324,10 @@ function restoreTabContent(tabName) {
 			else if (msg.type === 'tool') {
 				showToolUsingMessage(msg.content, 'tool-used');
 			}
+			else if (msg.type === 'system') {
+				// 显示系统消息（如中断通知）
+				showSystemMessage(msg.content);
+			}
 		});
 
 		// 滚动到底部
@@ -305,6 +335,82 @@ function restoreTabContent(tabName) {
 	}
 
 	console.log('[Console] 恢复 Tab 内容:', tabName, '消息数量:', state.messages.length);
+}
+
+/**
+ * 处理中断命令
+ */
+async function handleInterruptCommand() {
+	// 获取当前 Tab
+	if (!CurrentCCTab) {
+		Notification.show(null, '没有选中的标签页', 'middleTop', 'warning', 3000);
+		console.warn('[Console] 没有选中的 Tab');
+		return;
+	}
+
+	try {
+		// 发送中断请求到 CCCore
+		const response = await fetch(`http://localhost:3579/claudius/${encodeURIComponent(CurrentCCTab)}/interrupt`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		});
+
+		const result = await response.json();
+
+		if (!result.ok) {
+			throw new Error(result.error || '中断请求失败');
+		}
+
+		console.log('[Console] 中断请求结果:', result);
+
+		// 显示中断结果（使用 tool-used 样式）
+		const conversationContainer = document.getElementById('conversation_container');
+		if (!conversationContainer) {
+			return;
+		}
+
+		const toolUsedItem = document.createElement('div');
+		toolUsedItem.className = 'conversation-item tool-used';
+
+		if (result.interrupted) {
+			// 成功中断
+			toolUsedItem.innerHTML = `
+				<div class="tool-name">系统</div>
+				<div class="tool-status">✓ 已中断</div>
+				<div class="tool-message">${result.message || '任务已成功中断'}</div>
+			`;
+		}
+		else {
+			// 没有需要中断的任务
+			toolUsedItem.innerHTML = `
+				<div class="tool-name">系统</div>
+				<div class="tool-status">ℹ 无需中断</div>
+				<div class="tool-message">${result.message || '当前没有正在执行的任务'}</div>
+			`;
+		}
+
+		conversationContainer.appendChild(toolUsedItem);
+
+		// 滚动到底部
+		conversationContainer.scrollTop = conversationContainer.scrollHeight;
+
+		// 将中断信息记录到对话历史中
+		const state = getTabState(CurrentCCTab);
+		if (state) {
+			state.messages.push({
+				type: 'system',
+				content: result.interrupted ? '任务已中断' : '无需中断（当前没有正在执行的任务）',
+				timestamp: Date.now(),
+			});
+			await saveTabData(CurrentCCTab);
+		}
+	}
+	catch (error) {
+		console.error('[Console] 中断请求失败:', error);
+		Notification.show(null, '中断请求失败：' + error.message, 'middleTop', 'error', 5000);
+	}
 }
 
 /**
@@ -371,7 +477,7 @@ async function sendMessageToCore(tabId, message, state) {
 			PreConversations.push([tabId, message.replace(/\s+/g, '').replace(/\p{P}/ug, '')]);
 		}
 
-		const response = await fetch(`http://localhost:3579/claudius/${tabId}/submit`, {
+		const response = await fetch(`http://localhost:3579/claudius/${encodeURIComponent(tabId)}/submit`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -432,7 +538,7 @@ async function sendClearRequest(tabId) {
 	if (!tabId) return;
 
 	try {
-		const response = await fetch(`http://localhost:3579/claudius/${tabId}/clear`, {
+		const response = await fetch(`http://localhost:3579/claudius/${encodeURIComponent(tabId)}/clear`, {
 			method: 'POST',
 		});
 
@@ -642,9 +748,54 @@ function showErrorMessage(error) {
 	}
 	// conversationContainer.scrollTop = conversationContainer.scrollHeight;
 }
+
 /**
- * 显示错误消息
- * @param {string} error - 错误信息
+ * 显示系统消息
+ * @param {string} message - 系统消息
+ */
+function showSystemMessage(message) {
+	const conversationContainer = document.getElementById('conversation_container');
+	if (!conversationContainer) {
+		return;
+	}
+
+	const toolUsedItem = document.createElement('div');
+	toolUsedItem.className = 'conversation-item tool-used';
+
+	// 根据消息内容判断是否是中断消息
+	const isInterrupted = message.includes('已中断');
+	const isNoNeed = message.includes('无需中断');
+
+	if (isInterrupted) {
+		toolUsedItem.innerHTML = `
+			<div class="tool-name">系统</div>
+			<div class="tool-status">✓ 已中断</div>
+			<div class="tool-message">${message}</div>
+		`;
+	}
+	else if (isNoNeed) {
+		toolUsedItem.innerHTML = `
+			<div class="tool-name">系统</div>
+			<div class="tool-status">ℹ 无需中断</div>
+			<div class="tool-message">${message}</div>
+		`;
+	}
+	else {
+		// 其他系统消息
+		toolUsedItem.innerHTML = `
+			<div class="tool-name">系统</div>
+			<div class="tool-status">ℹ 消息</div>
+			<div class="tool-message">${message}</div>
+		`;
+	}
+
+	conversationContainer.appendChild(toolUsedItem);
+}
+
+/**
+ * 显示工具使用消息
+ * @param {string} toolUsage - 工具使用信息
+ * @param {string} status - 状态
  */
 function showToolUsingMessage(toolUsage, status) {
 	const conversationContainer = document.getElementById('conversation_container');
@@ -914,6 +1065,7 @@ const showDirectoryPicker = (tabName) => new Promise(res => {
 const matchSessionIdWithTabId = (sessionId, content) => {
 	let tabId = Conversations[sessionId];
 	if (tabId) return; // 该对话已经与标签页绑定，则不再绑定
+	console.log(PreConversations, sessionId, content);
 
 	// 如果没有可匹配的，则放弃
 	if (PreConversations.length === 0) {
@@ -956,12 +1108,13 @@ const updateToolUsage = (sessionId, toolName, type) => {
 		if (tabId !== CurrentCCTab) return; // 不是当前标签页或没有对应标签页
 
 		// 判断是否是 Skill 相关的工具
-		const isSkillTool = toolName === 'Skill' || toolName.startsWith('Skill (');
+		const isSkillTool = (toolName === 'Skill') || toolName.startsWith('Skill (');
+		console.log(toolName, isSkillTool, toolName === 'Skill', toolName.startsWith('Skill ('));
 
 		// Skill 工具直接显示为已完成状态，其他工具显示加载状态
 		const initialStatus = isSkillTool ? 'tool-used' : 'tool-using';
 		const toolId = showToolUsingMessage(toolName, initialStatus);
-		ToolUsages[toolName] = [toolId, sessionId];
+		if (!isSkillTool) ToolUsages[toolName] = [toolId, sessionId];
 	}
 	else if (type === 'end') {
 		const toolId = ToolUsages[toolName]?.[0];
