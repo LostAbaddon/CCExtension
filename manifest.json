@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Claudius",
-  "version": "1.1.5",
+  "version": "2.0.0",
   "description": "Claude Code in the Shell",
   "permissions": [
     "notifications",
     "tabs",
+    "activeTab",
     "storage",
-    "windows"
+    "windows",
+    "scripting",
+    "downloads"
   ],
   "host_permissions": [
     "<all_urls>",
@@ -47,12 +50,17 @@
       "resources": [
         "src/page-tracker.js",
         "components/theme-toggle.js",
+        "components/markup.js",
+        "components/html2docx.js",
         "style/main.css",
+        "style/float-menu.css",
         "style/markdown.css",
         "style/theme.css",
         "style/theme-toggle.css",
         "style/directory-browser.css",
-        "pages/settings.html"
+        "pages/settings.html",
+        "pages/markdown-editor.html",
+        "pages/markdown-editor.js"
       ],
       "matches": [
         "<all_urls>"

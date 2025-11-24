@@ -1,0 +1,197 @@
+body {
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 100vh;
+	background: var(--back-color);
+	color: var(--front-color);
+}
+
+/* 主容器 */
+.main-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	max-width: 800px;
+	padding: 100px 20px 40px;
+	gap: 40px;
+}
+
+/* 长按钮 */
+.long-button-area {
+	width: 100%;
+	text-align: center;
+	margin: 20px 0px;
+}
+.long-button-area .btn-events {
+	width: 100%;
+	padding: 18px 36px;
+	background-image: linear-gradient(135deg, var(--gradient-start-color) 0%, var(--gradient-middle-color) 40%, var(--emphasize-color) 80%, var(--gradient-start-color) 100%);
+	color: var(--back-color);
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+.long-button-area .btn-events:hover {
+	opacity: 0.9;
+	transform: translateY(-1px);
+}
+.long-button-area .btn-events:active {
+	transform: translateY(0);
+}
+
+/* 搜索区域 */
+.search-area {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 20px;
+}
+.logo-title {
+	margin-bottom: 10px;
+	background: linear-gradient(135deg, var(--gradient-start-color) 0%, var(--gradient-middle-color) 50%, var(--emphasize-color) 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	font-size: 60px;
+	font-weight: bold;
+	color: var(--emphasize-color);
+	text-shadow: 2px 2px 5px rgb(from var(--front-color) r g b / 20%);
+}
+.search-input-wrapper {
+	width: 100%;
+}
+.search-area #search-input .voice-input-wrapper {
+	box-sizing: border-box;
+	border: 2px solid transparent;
+	background-image:
+		linear-gradient(var(--back-color), var(--back-color)),
+		linear-gradient(135deg, var(--gradient-start-color) 0%, var(--gradient-middle-color) 50%, var(--emphasize-color) 100%);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+}
+.search-area #search-input .voice-input-submit {
+	border: none;
+	box-sizing: border-box;
+	background-image: linear-gradient(135deg, var(--emphasize-color) 0%, var(--gradient-start-color) 100%);
+}
+
+/* 提醒列表区域 */
+.reminders-section {
+	width: 100%;
+}
+.section-title {
+	display: inline-block;
+	margin-bottom: 15px;
+	background: linear-gradient(90deg, var(--gradient-start-color) 0%, var(--gradient-middle-color) 50%, var(--emphasize-color) 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	font-size: 18px;
+	font-weight: 600;
+	color: var(--emphasize-color);
+	text-shadow: 2px 2px 5px rgb(from var(--front-color) r g b / 20%);
+}
+.reminders-list {
+	box-sizing: border-box;
+	width: 100%;
+	border-radius: 5px;
+	border: 2px solid transparent;
+	background-image:
+		linear-gradient(var(--back-color), var(--back-color)),
+		linear-gradient(135deg, var(--gradient-start-color) 0%, var(--gradient-middle-color) 40%, var(--emphasize-color) 80%, var(--gradient-start-color) 100%);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+	padding: 12px;
+	max-height: 500px;
+	overflow-y: auto;
+	box-shadow: 1px 1px 2px rgba(23, 23, 23, 0.5);
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+.reminder-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px;
+	margin-bottom: 8px;
+	background: var(--back-color);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	transition: all 0.2s ease;
+}
+.reminder-item:hover {
+	background: var(--area-hover-color);
+}
+.reminder-item:last-child {
+	margin-bottom: 0;
+}
+
+.reminder-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.reminder-title {
+	font-weight: 600;
+	font-size: 14px;
+	color: var(--front-color);
+}
+.reminder-message {
+	font-size: 12px;
+	color: var(--front-color-secondary);
+}
+.reminder-meta {
+	display: flex;
+	gap: 12px;
+	font-size: 11px;
+	color: var(--front-color-secondary);
+	margin-top: 4px;
+}
+.reminder-meta-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.reminder-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.btn-remover {
+	padding: 6px 12px;
+	background: transparent;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 12px;
+	color: var(--front-color);
+	transition: all 0.2s ease;
+}
+.btn-remover:hover {
+	background: var(--emphasize-color);
+	color: var(--back-color);
+	border-color: var(--emphasize-color);
+}
+
+.empty-state {
+	text-align: center;
+	padding: 40px 20px;
+	color: var(--front-color-secondary);
+}
+.empty-text {
+	font-size: 14px;
+}
+
+.loading {
+	text-align: center;
+	padding: 40px 20px;
+	color: var(--front-color-secondary);
+}

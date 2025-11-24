@@ -4,13 +4,21 @@
 body[theme="light"] {
 	--front-color: rgba(19, 17, 36, 1.0);
 	--back-color: rgba(226, 225, 228, 1.0);
+	--front-color-secondary: rgba(178, 187, 190, 1.0);
 	--emphasize-color: rgba(36, 134, 185, 1.0);
 	--background-color: rgba(31, 32, 64, 1.0);
+	--gradient-start-color: rgba(64, 160, 112, 1.0);
+	--gradient-middle-color: rgba(26, 104, 64, 1.0);
+	--area-hover-color: rgba(253, 253, 253, 1.0);
 }
 
 body[theme="dark"] {
 	--back-color: rgba(29, 30, 27, 1.0);
 	--front-color: rgba(234, 238, 219, 1.0);
+	--front-color-secondary: rgba(115, 124, 123, 1.0);
 	--emphasize-color: rgba(88, 178, 220, 1.0);
 	--menu-color: rgba(15, 15, 18, 1.0);
+	--gradient-start-color: rgba(64, 160, 112, 1.0);
+	--gradient-middle-color: rgba(18, 110, 130, 1.0);
+	--area-hover-color: rgba(11, 11, 11, 1.0);
 }

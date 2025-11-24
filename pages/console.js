@@ -20,6 +20,8 @@ function getTabState(tabName) {
 			workDir: null,
 			sessionId: null,
 			messages: [], // 存储未渲染的消息，格式: [{type: 'user'|'assistant'|'error', content: string}]
+			inputDraft: '', // 输入框草稿
+			pendingJobs: 0, // 正在进行的任务数
 		};
 	}
 	return tabStates[tabName];
@@ -47,6 +49,31 @@ document.addEventListener('DOMContentLoaded', () => {
 	// 监听输入框提交事件
 	const mainInput = document.getElementById('main-input');
 	if (mainInput) {
+		// 监听输入框内容变化，保存草稿
+		mainInput.addEventListener('input', () => {
+			if (!CurrentCCTab) return;
+
+			const tabName = CurrentCCTab; // 捕获当前标签页名称
+			const state = getTabState(tabName);
+			const currentValue = VoiceInput.getValue(mainInput);
+			state.inputDraft = currentValue;
+
+			// 防抖保存到数据库
+			if (state._inputSaveTimer) {
+				clearTimeout(state._inputSaveTimer);
+			}
+			state._inputSaveTimer = setTimeout(() => {
+				// 检查标签页是否还存在
+				if (!tabStates[tabName]) {
+					console.log(`[Console] 标签页 "${tabName}" 已删除，取消保存`);
+					return;
+				}
+				saveTabData(tabName).catch(err => {
+					console.error('[Console] 保存输入草稿失败:', err);
+				});
+			}, 500);
+		});
+
 		mainInput.addEventListener('onSubmit', (event) => {
 			const message = event.detail.value;
 			if (!message) {
@@ -58,16 +85,30 @@ document.addEventListener('DOMContentLoaded', () => {
 			// 检查是否是中断命令
 			if (message === '/break' || message === '/shutdown') {
 				handleInterruptCommand();
-				// 清空输入框
+				// 清空输入框和草稿
 				VoiceInput.clear(mainInput);
+				if (CurrentCCTab) {
+					const state = getTabState(CurrentCCTab);
+					state.inputDraft = '';
+					saveTabData(CurrentCCTab).catch(err => {
+						console.error('[Console] 保存输入草稿失败:', err);
+					});
+				}
 				return;
 			}
 
 			// 这里处理消息发送逻辑
 			handleMessageSubmit(message);
 
-			// 清空输入框
+			// 清空输入框和草稿
 			VoiceInput.clear(mainInput);
+			if (CurrentCCTab) {
+				const state = getTabState(CurrentCCTab);
+				state.inputDraft = '';
+				saveTabData(CurrentCCTab).catch(err => {
+					console.error('[Console] 保存输入草稿失败:', err);
+				});
+			}
 		});
 		// 监听输入框高度变化事件
 		mainInput.addEventListener('onHeightChange', (event) => {
@@ -158,9 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			// 恢复新 tab 的内容
 			restoreTabContent(tabName);
 
-			// 自动聚焦到输入框
+			// 恢复输入框内容
 			const mainInput = document.getElementById('main-input');
 			if (mainInput) {
+				const state = getTabState(tabName);
+				VoiceInput.setValue(mainInput, state.inputDraft || '');
+
+				// 自动聚焦到输入框
 				VoiceInput.focus(mainInput);
 			}
 		});
@@ -234,7 +279,7 @@ async function restoreAllTabs() {
 
 		// 恢复每个标签页
 		for (const tabData of savedTabs) {
-			const { tabName, workDir, sessionId, messages } = tabData;
+			const { tabName, workDir, sessionId, messages, inputDraft, pendingJobs } = tabData;
 			if (!workDir || !sessionId) continue;
 
 			// 恢复标签页状态
@@ -242,6 +287,8 @@ async function restoreAllTabs() {
 			state.workDir = workDir;
 			state.sessionId = sessionId;
 			state.messages = messages || [];
+			state.inputDraft = inputDraft || '';
+			state.pendingJobs = pendingJobs || 0;
 			Conversations[sessionId] = tabName;
 
 			// 添加标签页到 UI（只有在不存在时才添加）
@@ -285,6 +332,8 @@ async function saveTabData(tabName) {
 			workDir: state.workDir,
 			sessionId: state.sessionId,
 			messages: state.messages,
+			inputDraft: state.inputDraft,
+			pendingJobs: state.pendingJobs,
 		});
 
 		console.log(`[TabStorage] 标签页 "${tabName}" 数据已保存`);
@@ -334,7 +383,21 @@ function restoreTabContent(tabName) {
 		conversationContainer.scrollTop = conversationContainer.scrollHeight;
 	}
 
-	console.log('[Console] 恢复 Tab 内容:', tabName, '消息数量:', state.messages.length);
+	// 恢复工作状态提示框
+	if (state.pendingJobs > 0) {
+		const indicator = document.createElement('div');
+		indicator.classList.add('chat-item');
+		indicator.classList.add('working-indicator');
+		indicator.innerHTML = `
+			<div class="working-spinner"></div>
+			<span>Claude 工作中……</span>
+		`;
+		conversationContainer.appendChild(indicator);
+		// 滚动到底部
+		conversationContainer.scrollTop = conversationContainer.scrollHeight;
+	}
+
+	console.log('[Console] 恢复 Tab 内容:', tabName, '消息数量:', state.messages.length, '正在工作:', state.pendingJobs > 0);
 }
 
 /**
@@ -445,16 +508,18 @@ async function handleMessageSubmit(message) {
 		await sendClearRequest(CurrentCCTab);
 		// 清空对话容器
 		conversationContainer.innerHTML = '';
-		// 重置 sessionId 和消息缓存
+		// 重置 sessionId、消息缓存、输入草稿和工作状态
 		state.sessionId = null;
 		state.messages = [];
+		state.inputDraft = '';
+		state.pendingJobs = 0;
 		// 保存清空后的状态
 		await saveTabData(CurrentCCTab);
 		return;
 	}
 
 	// 显示"工作中"提示框
-	showWorkingIndicator();
+	showWorkingIndicator(CurrentCCTab);
 
 	// 提交消息到 CCCore
 	state.messages.push({ type: 'user', content: message });
@@ -514,8 +579,8 @@ async function sendMessageToCore(tabId, message, state) {
 		await saveTabData(tabId);
 	}
 	finally {
-		// 移除"工作中"提示框
-		hideWorkingIndicator();
+		// 移除"工作中"提示框（使用原始的 tabId，不依赖 CurrentCCTab）
+		hideWorkingIndicator(tabId);
 
 		const sessionId = state.sessionId;
 		if (!sessionId) return;
@@ -1140,12 +1205,30 @@ const updateToolUsage = (sessionId, toolName, type) => {
 
 /**
  * 显示"工作中"提示框
+ * @param {string} tabId - 标签页 ID
  */
-function showWorkingIndicator() {
-	if (!CurrentCCTab) return;
+function showWorkingIndicator(tabId) {
+	if (!tabId) return;
+
+	const state = getTabState(tabId);
+
+	// 增加工作计数
+	state.pendingJobs++;
+
+	// 始终保存状态（即使提示框已存在）
+	saveTabData(tabId).catch(err => {
+		console.error('[Console] 保存工作状态失败:', err);
+	});
+
+	// 只有当前标签页才显示提示框
+	if (tabId !== CurrentCCTab) return;
 
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) return;
+
+	// 如果已经有提示框，不重复创建
+	const existingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+	if (existingIndicator) return;
 
 	// 创建"工作中"提示框
 	const indicator = document.createElement('div');
@@ -1163,17 +1246,36 @@ function showWorkingIndicator() {
 }
 /**
  * 隐藏"工作中"提示框
+ * @param {string} tabId - 标签页 ID
  */
-function hideWorkingIndicator() {
-	if (!CurrentCCTab) return;
+function hideWorkingIndicator(tabId) {
+	if (!tabId) return;
+
+	const state = getTabState(tabId);
+
+	// 减少工作计数
+	if (state.pendingJobs > 0) {
+		state.pendingJobs--;
+	}
+
+	// 保存状态
+	saveTabData(tabId).catch(err => {
+		console.error('[Console] 保存工作状态失败:', err);
+	});
+
+	// 只有当前标签页才操作 UI
+	if (tabId !== CurrentCCTab) return;
 
 	const conversationContainer = document.getElementById('conversation_container');
 	if (!conversationContainer) return;
 
-	// 检测是否有工作中提示框
-	const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
-	if (!workingIndicator) return;
-	workingIndicator.parentElement.removeChild(workingIndicator);
+	// 只有当所有任务都完成时才移除提示框
+	if (state.pendingJobs === 0) {
+		const workingIndicator = conversationContainer.querySelector('div.chat-item.working-indicator');
+		if (workingIndicator) {
+			workingIndicator.parentElement.removeChild(workingIndicator);
+		}
+	}
 }
 
 /**

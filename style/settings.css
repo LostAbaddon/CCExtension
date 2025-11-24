@@ -375,3 +375,39 @@ button.secondary:active {
 	font-size: 13px;
 	transition: color 0.3s;
 }
+
+/* 工作区选择器样式 */
+.workspace-selector {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.workspace-selector .input-field {
+	flex: 1;
+	width: auto;
+	cursor: pointer;
+	background-color: var(--container-bg);
+	color: var(--text-secondary);
+}
+
+.workspace-selector .btn-select {
+	padding: 8px 16px;
+	background-color: var(--emphasize-color);
+	color: var(--back-color);
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 13px;
+	white-space: nowrap;
+	margin: 0;
+	transition: background-color 0.3s;
+}
+
+.workspace-selector .btn-select:hover {
+	background-color: var(--emphasize-hover);
+}
+
+.workspace-selector .btn-select:active {
+	background-color: var(--emphasize-active);
+}

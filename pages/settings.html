@@ -77,11 +77,28 @@
 		</div>
 	</div>
 
-	<!-- 活跃提醒 -->
+	<!-- 工作区设置 -->
 	<div class="section">
-		<h2>活跃提醒</h2>
-		<div id="remindersList" class="reminders-list">
-			<div class="loading">加载中...</div>
+		<h2>默认工作区</h2>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">搜索工作区</div>
+				<div class="setting-description">用于搜索、研究任务的默认工作目录</div>
+			</div>
+			<div class="workspace-selector">
+				<input type="text" id="searchWorkspace" class="input-field" readonly placeholder="~/Searching" />
+				<button id="selectSearchWorkspace" class="btn-select">选择</button>
+			</div>
+		</div>
+		<div class="setting-item">
+			<div>
+				<div class="setting-label">写作工作区</div>
+				<div class="setting-description">用于写作、文档编辑任务的默认工作目录</div>
+			</div>
+			<div class="workspace-selector">
+				<input type="text" id="writingWorkspace" class="input-field" readonly placeholder="~/Writing" />
+				<button id="selectWritingWorkspace" class="btn-select">选择</button>
+			</div>
 		</div>
 	</div>
 

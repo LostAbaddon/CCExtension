@@ -9,6 +9,117 @@
 	const LongPressDuration = 1000;
 
 	/**
+	 * 浏览器语言代码到语音识别 API 语言代码的映射表
+	 * 格式: { 浏览器语言代码: 语音识别语言代码 }
+	 */
+	const LanguageMap = {
+		// 中文
+		'zh': 'zh-CN',
+		'zh-CN': 'zh-CN',
+		'zh-TW': 'zh-TW',
+		'zh-HK': 'zh-HK',
+		// 英文
+		'en': 'en-US',
+		'en-US': 'en-US',
+		'en-GB': 'en-GB',
+		'en-AU': 'en-AU',
+		'en-CA': 'en-CA',
+		'en-IN': 'en-IN',
+		// 日文
+		'ja': 'ja-JP',
+		'ja-JP': 'ja-JP',
+		// 韩文
+		'ko': 'ko-KR',
+		'ko-KR': 'ko-KR',
+		// 法文
+		'fr': 'fr-FR',
+		'fr-FR': 'fr-FR',
+		'fr-CA': 'fr-CA',
+		// 德文
+		'de': 'de-DE',
+		'de-DE': 'de-DE',
+		// 西班牙文
+		'es': 'es-ES',
+		'es-ES': 'es-ES',
+		'es-MX': 'es-MX',
+		'es-US': 'es-US',
+		// 意大利文
+		'it': 'it-IT',
+		'it-IT': 'it-IT',
+		// 葡萄牙文
+		'pt': 'pt-BR',
+		'pt-PT': 'pt-PT',
+		'pt-BR': 'pt-BR',
+		// 俄文
+		'ru': 'ru-RU',
+		'ru-RU': 'ru-RU',
+		// 阿拉伯文
+		'ar': 'ar-SA',
+		'ar-SA': 'ar-SA',
+		// 印地文
+		'hi': 'hi-IN',
+		'hi-IN': 'hi-IN',
+		// 泰文
+		'th': 'th-TH',
+		'th-TH': 'th-TH',
+		// 越南文
+		'vi': 'vi-VN',
+		'vi-VN': 'vi-VN',
+		// 印尼文
+		'id': 'id-ID',
+		'id-ID': 'id-ID',
+		// 荷兰文
+		'nl': 'nl-NL',
+		'nl-NL': 'nl-NL',
+		// 波兰文
+		'pl': 'pl-PL',
+		'pl-PL': 'pl-PL',
+		// 土耳其文
+		'tr': 'tr-TR',
+		'tr-TR': 'tr-TR',
+	};
+
+	/**
+	 * 获取语音识别语言
+	 * 优先级: 用户设置 > 系统语言 > 默认 en-US
+	 * @returns {Promise<string>} 语音识别语言代码
+	 */
+	async function getSpeechRecognitionLanguage() {
+		try {
+			// 获取系统语言
+			let browserLanguage = 'en-US';
+			if (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getUILanguage) {
+				browserLanguage = chrome.i18n.getUILanguage();
+			}
+			else if (navigator.language) {
+				browserLanguage = navigator.language;
+			}
+			console.log('[VoiceInput] 浏览器语言:', browserLanguage);
+
+			// 查找语言映射
+			// 首先尝试完整匹配
+			if (LanguageMap[browserLanguage]) {
+				console.log('[VoiceInput] 使用映射语言:', LanguageMap[browserLanguage]);
+				return LanguageMap[browserLanguage];
+			}
+			// 尝试匹配语言代码的前缀（例如 zh-CN -> zh）
+			const languagePrefix = browserLanguage.split('-')[0];
+			if (LanguageMap[languagePrefix]) {
+				console.log('[VoiceInput] 使用前缀映射语言:', LanguageMap[languagePrefix]);
+				return LanguageMap[languagePrefix];
+			}
+
+			// 兜底策略：使用默认语言 en-US
+			console.log('[VoiceInput] 未找到语言映射，使用默认语言: en-US');
+			return 'en-US';
+		}
+		catch (error) {
+			console.error('[VoiceInput] 获取语音识别语言失败:', error);
+			return 'en-US';
+		}
+	}
+
+	/**
 	 * 初始化所有 voice_input 组件
 	 */
 	function initAll() {
@@ -26,6 +137,7 @@
 		const maxHeight = parseInt(voiceInputElement.getAttribute('max_height')) || 200;
 		const placeholder = voiceInputElement.getAttribute('placeholder') || '请输入内容...';
 		const submitWidth = parseInt(voiceInputElement.getAttribute('submit_width')) || 100;
+		const label = voiceInputElement.getAttribute('label') || '确认提交';
 
 		// 创建内部结构
 		const container = document.createElement('div');
@@ -64,7 +176,7 @@
 		const submitBtn = document.createElement('button');
 		submitBtn.classList.add('voice-input-submit');
 		submitBtn.type = 'button';
-		submitBtn.textContent = '确认提交';
+		submitBtn.textContent = label;
 		submitBtn.style.width = `${submitWidth}px`;
 
 		// 组装容器
@@ -239,7 +351,7 @@
 	 * @param {HTMLElement} voiceInputElement - voice_input 元素
 	 * @param {number} pressDuration - 按压时长(毫秒)
 	 */
-	function handleVoiceInput(voiceInputElement, pressDuration = 0) {
+	async function handleVoiceInput(voiceInputElement, pressDuration = 0) {
 		const config = voiceInputElement._config;
 		if (!config) return;
 
@@ -264,9 +376,13 @@
 			return;
 		}
 
+		// 获取语音识别语言
+		const lang = await getSpeechRecognitionLanguage();
+		console.log('[VoiceInput] 使用语音识别语言:', lang);
+
 		// 创建语音识别实例
 		const recognition = new SpeechRecognition();
-		recognition.lang = 'zh-CN'; // 设置语言为中文
+		recognition.lang = lang; // 设置语音识别语言
 
 		// 根据按压时长决定识别模式
 		const isContinuous = pressDuration >= LongPressDuration;

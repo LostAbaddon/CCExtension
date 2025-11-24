@@ -1,6 +1,6 @@
 # CCExtension (Claudius) - Claude Code Chrome 插件
 
-- 版本：1.1.5
+- 版本：2.0.0
 - 作者：LostAbaddon
 
 CCExtension（插件名称：Claudius）是与 CCCore 配套的 Chrome 插件，为 Claude Code 提供跨平台的通知管理、Markdown 渲染、语音交互和浏览器集成功能。

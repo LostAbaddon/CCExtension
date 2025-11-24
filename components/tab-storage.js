@@ -57,6 +57,8 @@
 	 * @param {string} data.workDir - 工作目录
 	 * @param {string} data.sessionId - 会话 ID
 	 * @param {Array} data.messages - 消息历史
+	 * @param {string} data.inputDraft - 输入框草稿
+	 * @param {number} data.pendingJobs - 正在进行的任务数
 	 * @returns {Promise<void>}
 	 */
 	async function saveTab(tabName, data) {
@@ -72,6 +74,8 @@
 				workDir: data.workDir || null,
 				sessionId: data.sessionId || null,
 				messages: data.messages || [],
+				inputDraft: data.inputDraft || '',
+				pendingJobs: data.pendingJobs || 0,
 				updatedAt: Date.now(),
 			};
 

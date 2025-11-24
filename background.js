@@ -16,6 +16,7 @@ let isConnecting = false;
 let useBrowserNotification = true; // 是否使用浏览器通知
 let localRemindersList = []; // 本地提醒列表副本
 let localReminderTimers = {};
+let isBrowserFocused = true; // 浏览器窗口是否获得焦点
 
 /**
  * 初始化通知偏好设置
@@ -217,6 +218,10 @@ async function handleRequest(action, data, messageId) {
 				result = handleStopReminderConfigUpdate(data);
 				break;
 
+			case 'CHECK_REMINDER_NEEDED':
+				result = await handleCheckReminderNeeded(data);
+				break;
+
 			default:
 				result = { ok: false, error: `未知的操作: ${action}` };
 		}
@@ -247,6 +252,15 @@ async function handleCreateNotification(data) {
 	// 检查是否使用浏览器通知
 	if (!useBrowserNotification) {
 		console.log(`[Notification] 通知(${id})回退到系统原生通知`);
+		return {
+			ok: false,
+			fallback: true,
+		};
+	}
+
+	// 检查用户是否离开浏览器
+	if (!isBrowserFocused) {
+		console.log(`[Notification] 用户已离开浏览器,通知(${id})回退到系统原生通知`);
 		return {
 			ok: false,
 			fallback: true,
@@ -431,6 +445,67 @@ function handleStopReminderConfigUpdate(data) {
 }
 
 /**
+ * 检查是否需要发送提醒
+ * 如果浏览器已聚焦且当前标签页匹配任务的 sessionId，则不需要发送提醒
+ * 返回数据中，available 表示是否可以前端完成通知，needed 表示是否需要后端完成通知
+ */
+async function handleCheckReminderNeeded(data) {
+	const { sessionId } = data;
+
+	// 如果没有 sessionId，需要发送提醒
+	if (!sessionId) {
+		console.log('[FocusStatus] 没有 sessionId，所以是定时提醒事件');
+		return { ok: true, available: isBrowserFocused, needed: true };
+	}
+
+	// 检查浏览器是否聚焦
+	if (!isBrowserFocused) {
+		console.log('[FocusStatus] 浏览器未聚焦，需要发送提醒');
+		return { ok: true, available: false, needed: true };
+	}
+
+	// 查找 console.html 标签页
+	const consoleURL = chrome.runtime.getURL('pages/console.html');
+	const tabs = await findTabsByUrl(consoleURL);
+	if (!tabs || tabs.length === 0) {
+		console.log('[FocusStatus] 没有找到 console.html 页面，需要发送提醒');
+		return { ok: true, available: true, needed: false };
+	}
+
+	// 向所有 console.html 页面查询 sessionId 对应的标签页
+	const sidResult = (await Promise.all(tabs.map(async tab => {
+		try {
+			const response = await chrome.tabs.sendMessage(tab.id, {
+				event: 'query_session_tab',
+				data: { sessionId }
+			});
+			console.log(tab, response, tab.active);
+			return { tabId: tab.id, isActive: tab.active, ...response };
+		}
+		catch (error) {
+			console.error('[FocusStatus] 查询标签页失败:', error);
+			return null;
+		}
+	}))).find(r => r && r.found);
+	if (!sidResult) {
+		// 该 sessionId 不属于任何打开的标签页，则可能是命令行任务，需要后台发送提醒
+		console.log(`[FocusStatus] sessionId ${sessionId} 不属于任何打开的标签页，需要发送提醒`);
+		return { ok: true, available: false, needed: true };
+	}
+
+	// 检查该标签页是否激活
+	if (!sidResult.isActive) {
+		// 标签页存在但未激活，需要发送提醒
+		console.log(`[FocusStatus] sessionId ${sessionId} 对应的标签页未激活，需要发送提醒`);
+		return { ok: true, available: true, needed: false };
+	}
+
+	// 浏览器已聚焦，且当前标签页匹配任务的 sessionId，不需要发送提醒
+	console.log(`[FocusStatus] 浏览器已聚焦且当前标签页匹配 sessionId ${sessionId}，不需要发送提醒`);
+	return { ok: true, available: false, needed: false };
+}
+
+/**
  * 处理工具使用事件
  */
 async function handleToolEvent(data) {
@@ -509,6 +584,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 /**
+ * 监听浏览器窗口焦点变化
+ */
+chrome.windows.onFocusChanged.addListener((windowId) => {
+	const focused = windowId !== chrome.windows.WINDOW_ID_NONE;
+
+	// 只在状态发生变化时更新和发送
+	if (isBrowserFocused !== focused) {
+		isBrowserFocused = focused;
+		console.log('[Claudius] 浏览器焦点状态变化:', { focused, windowId });
+		sendBrowserStateUpdate(focused);
+	}
+});
+
+/**
  * 发送页面信息到 CCCore
  */
 function sendPageInfo(tab) {
@@ -528,6 +617,26 @@ function sendPageInfo(tab) {
 
 	sendMessage(pageInfo);
 	console.log('[Claudius] 页面信息已发送:', pageInfo);
+}
+
+/**
+ * 发送浏览器窗口焦点状态到 CCCore
+ */
+function sendBrowserStateUpdate(focused) {
+	if (wsConnection?.readyState !== WebSocket.OPEN) {
+		return;
+	}
+
+	const stateInfo = {
+		type: 'BROWSER_STATE_UPDATE',
+		data: {
+			focused: focused,
+			timestamp: Date.now(),
+		},
+	};
+
+	sendMessage(stateInfo);
+	console.log('[Claudius] 浏览器状态已发送:', stateInfo);
 }
 
 /**
@@ -639,31 +748,88 @@ chrome.runtime.onInstalled.addListener(async () => {
 	connectToCCCore();
 });
 
+const ActionCenter = {};
+ActionCenter.amountJS = async (sender, ...jsFiles) => {
+	await chrome.scripting.executeScript({
+		target: {tabId: sender.tab?.id},
+		files: jsFiles,
+	});
+	return true;
+};
+ActionCenter.downloadFile = async (sender, fileInfo) => {
+	try {
+		// 直接使用 Data URL（base64 编码）
+		const dataUrl = `data:${fileInfo.mimeType};base64,${fileInfo.data}`;
+
+		// 使用 chrome.downloads API 下载
+		const downloadId = await chrome.downloads.download({
+			url: dataUrl,
+			filename: fileInfo.filename,
+			saveAs: true
+		});
+
+		console.log('[Background] 文件下载已启动, ID:', downloadId);
+
+		return true;
+	}
+	catch (error) {
+		console.error('[Background] 下载文件失败:', error);
+		throw error;
+	}
+};
 /**
  * 通讯事件处理
  */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (request.type === 'LOG') {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+	if (request.event) {
+		const callback = ActionCenter[request.event];
+		if (callback) {
+			const tabId = sender.tab?.id;
+			const taskId = request.tid;
+			try {
+				const reply = await callback(sender, ...request.data);
+				if (tabId) chrome.tabs.sendMessage(tabId, {
+					event: "__reply_action",
+					tid: taskId,
+					ok: true,
+					data: reply
+				});
+			}
+			catch (err) {
+				console.error(err);
+				if (tabId) chrome.tabs.sendMessage(tabId, {
+					event: "__reply_action",
+					tid: taskId,
+					ok: false,
+					error: err.message || err.msg || err.data || err,
+				});
+			}
+		}
+		else {
+			console.log('[ActionCenter] Missing Event Callback: ' + request.event);
+		}
+	}
+	else if (request.type === 'LOG') {
 		(console[(request.level || '').toLowerCase() || 'log'] || console.log)('[' + request.name.toUpperCase() + ']', ...request.message);
 		return true;
 	}
-	if (request.type === 'GET_STATUS') {
+	else if (request.type === 'GET_STATUS') {
 		// 返回连接状态
 		sendResponse({
 			connected: wsConnection?.readyState === WebSocket.OPEN,
 		});
 	}
-	if (request.type === 'RECONNECT') {
+	else if (request.type === 'RECONNECT') {
 		// 触发重新连接
 		connectToCCCore();
 		sendResponse({ ok: true });
 	}
-	if (request.type === 'SET_NOTIFICATION_PREFERENCE') {
+	else if (request.type === 'SET_NOTIFICATION_PREFERENCE') {
 		// 更新通知偏好
 		setNotificationPreference(request.useBrowserNotification);
 		sendResponse({ ok: true });
 	}
-	if (request.type === 'HANDLE_NOTIFICATION_CLICK') {
+	else if (request.type === 'HANDLE_NOTIFICATION_CLICK') {
 		// 处理通知点击
 		handleNotificationClick(request.sessionId);
 		return true;
@@ -684,5 +850,18 @@ console.log('  - chrome.runtime:', !!chrome.runtime);
 // 启动时初始化通知偏好和连接
 (async () => {
 	await initNotificationPreference();
+
+	// 初始化浏览器焦点状态
+	try {
+		const currentWindow = await chrome.windows.getCurrent();
+		isBrowserFocused = currentWindow.focused;
+		console.log('[Claudius] 初始浏览器焦点状态:', { focused: isBrowserFocused });
+	}
+	catch (error) {
+		console.warn('[Claudius] 获取初始焦点状态失败:', error.message);
+		// 默认假设浏览器有焦点
+		isBrowserFocused = true;
+	}
+
 	connectToCCCore();
 })();

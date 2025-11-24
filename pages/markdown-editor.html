@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Markdown 编辑器 - CCExtension</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "Noto Sans", Helvetica, Arial, sans-serif;
+			height: 100vh;
+			overflow: hidden;
+			background-color: #f5f5f5;
+		}
+
+		/* 顶部工具栏 */
+		.editor-toolbar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 12px 20px;
+			background-color: #fff;
+			border-bottom: 1px solid #e1e4e8;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+		}
+
+		.toolbar-left,
+		.toolbar-right {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+
+		.file-path {
+			font-size: 14px;
+			color: #586069;
+			font-weight: 500;
+			max-width: 400px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.toolbar-btn {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 8px 16px;
+			background-color: #fff;
+			color: #24292e;
+			border: 1px solid #e1e4e8;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 14px;
+			font-weight: 500;
+			transition: all 0.2s ease;
+		}
+
+		.toolbar-btn:hover {
+			background-color: #f6f8fa;
+			border-color: #d0d7de;
+		}
+
+		.toolbar-btn:active {
+			background-color: #e9ecef;
+		}
+
+		.toolbar-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.toolbar-btn.primary {
+			background-color: #2ea44f;
+			color: #fff;
+			border-color: #2ea44f;
+		}
+
+		.toolbar-btn.primary:hover {
+			background-color: #2c974b;
+		}
+
+		.toolbar-btn.primary:active {
+			background-color: #2a8f47;
+		}
+
+		.toolbar-btn svg {
+			width: 16px;
+			height: 16px;
+		}
+
+		/* 编辑器容器 */
+		.editor-container {
+			display: flex;
+			height: calc(100vh - 57px);
+		}
+
+		/* 左侧编辑区 */
+		.editor-pane {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			background-color: #fff;
+			border-right: 1px solid #e1e4e8;
+		}
+
+		.pane-header {
+			padding: 12px 16px;
+			background-color: #f6f8fa;
+			border-bottom: 1px solid #e1e4e8;
+			font-size: 13px;
+			font-weight: 600;
+			color: #24292e;
+		}
+
+		.editor-textarea {
+			flex: 1;
+			padding: 20px;
+			border: none;
+			outline: none;
+			font-family: "Courier New", "Consolas", "Monaco", monospace;
+			font-size: 14px;
+			line-height: 1.6;
+			color: #24292e;
+			background-color: #fff;
+			resize: none;
+			tab-size: 4;
+		}
+
+		/* 右侧预览区 */
+		.preview-pane {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			background-color: #fff;
+			overflow: hidden;
+		}
+
+		.preview-content {
+			flex: 1;
+			padding: 20px;
+			overflow-y: auto;
+		}
+
+		/* 状态栏 */
+		.status-bar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 8px 20px;
+			background-color: #f6f8fa;
+			border-top: 1px solid #e1e4e8;
+			font-size: 12px;
+			color: #586069;
+		}
+
+		.status-info {
+			display: flex;
+			gap: 16px;
+		}
+
+		/* 暗色主题 */
+		body[theme="dark"] {
+			background-color: #0d1117;
+		}
+
+		body[theme="dark"] .editor-toolbar,
+		body[theme="dark"] .editor-pane,
+		body[theme="dark"] .preview-pane {
+			background-color: #0d1117;
+			border-color: #30363d;
+		}
+
+		body[theme="dark"] .pane-header,
+		body[theme="dark"] .status-bar {
+			background-color: #161b22;
+			border-color: #30363d;
+		}
+
+		body[theme="dark"] .editor-textarea {
+			background-color: #0d1117;
+			color: #c9d1d9;
+		}
+
+		body[theme="dark"] .toolbar-btn {
+			background-color: #21262d;
+			color: #c9d1d9;
+			border-color: #30363d;
+		}
+
+		body[theme="dark"] .toolbar-btn:hover {
+			background-color: #30363d;
+		}
+
+		body[theme="dark"] .file-path,
+		body[theme="dark"] .pane-header,
+		body[theme="dark"] .status-info {
+			color: #c9d1d9;
+		}
+
+		/* 菜单样式 */
+		#menu-toggle-btn {
+			cursor: pointer;
+		}
+
+		#action-menu {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.menu-item {
+			cursor: pointer;
+			padding: 8px;
+			border-radius: 4px;
+			transition: background 0.2s ease;
+		}
+
+		.menu-item:hover {
+			background-color: #f6f8fa;
+		}
+
+		body[theme="dark"] .menu-item:hover {
+			background-color: #30363d;
+		}
+
+		.toolbar-right {
+			position: relative;
+		}
+	</style>
+</head>
+<body>
+	<!-- 顶部工具栏 -->
+	<div class="editor-toolbar">
+		<div class="toolbar-left">
+			<div class="file-path" id="file-path">未选择文件</div>
+		</div>
+		<div class="toolbar-right">
+			<!-- 菜单展开按钮 -->
+			<div id="menu-toggle-btn" class="toolbar-btn" title="菜单">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
+			<!-- 菜单容器 -->
+			<div id="action-menu" style="display: none; position: absolute; right: 0; top: 100%; background: var(--back-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-top: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000;">
+				<div class="menu-item toolbar-btn" id="back-btn" title="返回">
+					<svg viewBox="0 0 16 16" fill="currentColor">
+						<path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L4.81 7h7.44a.75.75 0 0 1 0 1.5H4.81l2.97 2.97a.75.75 0 0 1 0 1.06z"/>
+					</svg>
+				</div>
+				<div class="menu-item toolbar-btn" id="theme-btn" title="切换主题">
+					<svg viewBox="0 0 16 16" fill="currentColor">
+						<path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5.657-8.157a.75.75 0 0 1 0 1.061l-.707.707a.75.75 0 1 1-1.061-1.061l.707-.707a.75.75 0 0 1 1.061 0zm-9.193 9.193a.75.75 0 0 1 0 1.061l-.707.707a.75.75 0 0 1-1.061-1.061l.707-.707a.75.75 0 0 1 1.061 0zM8 0a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1A.75.75 0 0 1 8 0zM3 8a.75.75 0 0 1-.75.75h-1a.75.75 0 0 1 0-1.5h1A.75.75 0 0 1 3 8zm13 0a.75.75 0 0 1-.75.75h-1a.75.75 0 0 1 0-1.5h1A.75.75 0 0 1 16 8zm-.75 6.25a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 1.5 0v1zM8 14.25a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75z"/>
+					</svg>
+				</div>
+				<div class="menu-item toolbar-btn primary" id="save-btn" title="保存文件">
+					<svg viewBox="0 0 16 16" fill="currentColor">
+						<path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/>
+					</svg>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- 编辑器容器 -->
+	<div class="editor-container">
+		<!-- 左侧编辑区 -->
+		<div class="editor-pane">
+			<div class="pane-header">Markdown 源码</div>
+			<textarea class="editor-textarea" id="editor" placeholder="在此输入 Markdown 内容..."></textarea>
+		</div>
+
+		<!-- 右侧预览区 -->
+		<div class="preview-pane">
+			<div class="pane-header">预览</div>
+			<div class="preview-content markdown-body" id="preview">
+				<p style="color: #6a737d;">预览区域</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- 状态栏 -->
+	<div class="status-bar">
+		<div class="status-info">
+			<span id="char-count">字符：0</span>
+			<span id="line-count">行数：0</span>
+			<span id="word-count">单词：0</span>
+		</div>
+		<div id="save-status">未修改</div>
+	</div>
+
+	<script src="../components/markup.js"></script>
+	<script src="markdown-editor.js"></script>
+</body>
+</html>
