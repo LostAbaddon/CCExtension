@@ -1,10 +1,14 @@
+// 存储原始 Markdown 内容
+let originalMarkdownContent = '';
+let isShowingSource = false;
+
 // 检查是否是 Markdown 文件
 function isMarkdownFile() {
-	const url = window.location.href;
 	const pathname = window.location.pathname;
+	const isMarkdown = pathname.endsWith('.md') || pathname.endsWith('.mu') || pathname.endsWith('.markdown');
 
 	// 检查文件扩展名
-	if (pathname.endsWith('.md') || pathname.endsWith('.markdown')) {
+	if (isMarkdown) {
 		return true;
 	}
 
@@ -12,7 +16,7 @@ function isMarkdownFile() {
 	const contentType = document.contentType || document.mimeType;
 	if (contentType && contentType.includes('text/plain')) {
 		// 可能是 markdown 文件但没有正确的 MIME 类型
-		if (pathname.includes('.md') || pathname.includes('.markdown')) {
+		if (isMarkdown) {
 			return true;
 		}
 	}
@@ -75,6 +79,7 @@ function renderMarkdown() {
 
 	// 获取 Markdown 内容
 	const markdownContent = getMarkdownContent();
+	originalMarkdownContent = markdownContent;
 
 	// 渲染 Markdown
 	if (typeof MarkUp !== 'undefined') {
@@ -87,33 +92,45 @@ function renderMarkdown() {
 			// 替换页面内容
 			document.body.innerHTML = `<!-- 顶部操作栏 -->
 <div id="menu-wrapper">
-<button id="menu-toggle-btn" title="菜单">
-	<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-	</svg>
-</button>
-<div id="action-menu">
-	${isLocalFile ? `<button id="edit-btn" class="menu-item" title="编辑文档">
-		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M18.5 2.5C18.8978 2.1022 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.1022 21.5 2.5C21.8978 2.8978 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.1022 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	</button>` : ''}
-	<button id="export-word-btn" class="menu-item" title="导出为 Word 文档">
-		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M12 18V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M9 15L12 18L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	<button id="menu-toggle-btn" title="菜单">
+		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 		</svg>
 	</button>
-	<button id="theme-toggle-btn" class="menu-item" title="切换主题">
-		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	</button>
-</div>
+	<div id="action-menu">
+		${isLocalFile ? `<button id="edit-btn" class="menu-item" title="编辑文档">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M18.5 2.5C18.8978 2.1022 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.1022 21.5 2.5C21.8978 2.8978 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.1022 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>` : ''}
+		<button id="export-word-btn" class="menu-item" title="导出为 Word 文档">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M12 18V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M9 15L12 18L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<button id="theme-toggle-btn" class="menu-item" title="切换主题">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<button id="source-toggle-btn" class="menu-item" title="显示源文件">
+			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path class="view-source-icon" d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-source-icon" d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-source-icon" d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-source-icon" d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-source-icon" d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-rendered-icon" d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-rendered-icon" d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path class="view-rendered-icon" d="M9 15L11 17L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+	</div>
 </div>
 
 <div id="markdown-container">
@@ -122,7 +139,7 @@ function renderMarkdown() {
 </div>
 </div>`;
 			// 针对本地地址做二次处理
-			let path = location.href.replace(/^file:\/\//, '').replace(/\/[^\/]+\.md$/, '/');
+			let path = location.href.replace(/^file:\/\//, '').replace(/\/[^\/]+\.(?:md|mu|markdown)$/, '/');
 			let pathList = path.split('/').filter(i => i);
 			[...document.body.querySelectorAll('a[href*="file"]')].forEach(link => {
 				if (link.href.match(/file:\/\/\./)) {
@@ -160,6 +177,8 @@ function renderMarkdown() {
 			loadStyles();
 			// 绑定事件
 			setupThemeToggle();
+			// 触发显示原文件
+			setupSourceToggle();
 			// 绑定导出事件
 			setupExportButton(markdownContent);
 			// 绑定编辑事件（仅本地文件）
@@ -235,14 +254,83 @@ function setupThemeToggle() {
 		toggleBtn.addEventListener('click', toggleTheme);
 	}
 }
+// 加载样式
+function loadStyles() {
+	const styles = [
+		chrome.runtime.getURL('style/main.css'),
+		chrome.runtime.getURL('style/float-menu.css'),
+		chrome.runtime.getURL('style/theme-toggle.css'),
+		chrome.runtime.getURL('style/markdown.css'),
+	];
 
-// 设置导出按钮
-function setupExportButton(markdownContent) {
-	const exportBtn = document.getElementById('export-word-btn');
-	if (exportBtn) {
-		exportBtn.addEventListener('click', () => exportToWord(markdownContent));
+	styles.forEach(styleUrl => {
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = styleUrl;
+		document.head.appendChild(link);
+	});
+
+	// 设置主题
+	detectAndSetTheme();
+}
+
+// 设置源文件切换按钮
+function setupSourceToggle() {
+	const sourceToggleBtn = document.getElementById('source-toggle-btn');
+	if (sourceToggleBtn) {
+		sourceToggleBtn.addEventListener('click', toggleSource);
 	}
 }
+// 切换源文件显示
+function toggleSource() {
+	const container = document.getElementById('markdown-container');
+	const sourceToggleBtn = document.getElementById('source-toggle-btn');
+	if (!container || !sourceToggleBtn) return;
+
+	isShowingSource = !isShowingSource;
+
+	if (isShowingSource) {
+		// 显示源文件
+		container.innerHTML = `<pre class="markdown-source">${escapeHtml(originalMarkdownContent)}</pre>`;
+		sourceToggleBtn.title = '显示渲染结果';
+		// 更新图标显示
+		updateSourceIcon(true);
+	}
+	else {
+		// 显示渲染结果
+		const html = MarkUp.fullParse(originalMarkdownContent);
+		container.innerHTML = `<div class="markdown-body">${html.content}</div>`;
+		sourceToggleBtn.title = '显示源文件';
+		// 更新图标显示
+		updateSourceIcon(false);
+	}
+}
+// 更新源文件切换按钮图标
+function updateSourceIcon(isSource) {
+	const sourceToggleBtn = document.getElementById('source-toggle-btn');
+	if (!sourceToggleBtn) return;
+
+	const viewSourceIcons = sourceToggleBtn.querySelectorAll('.view-source-icon');
+	const viewRenderedIcons = sourceToggleBtn.querySelectorAll('.view-rendered-icon');
+
+	if (isSource) {
+		// 当前显示源文件，按钮表示"切换到渲染视图"
+		viewSourceIcons.forEach(icon => icon.style.display = 'none');
+		viewRenderedIcons.forEach(icon => icon.style.display = 'block');
+	}
+	else {
+		// 当前显示渲染结果，按钮表示"切换到源文件"
+		viewSourceIcons.forEach(icon => icon.style.display = 'block');
+		viewRenderedIcons.forEach(icon => icon.style.display = 'none');
+	}
+}
+// HTML 转义函数
+function escapeHtml(text) {
+	const div = document.createElement('div');
+	div.textContent = text;
+	return div.innerHTML;
+}
+
 // 设置编辑按钮
 function setupEditButton(markdownContent) {
 	const editBtn = document.getElementById('edit-btn');
@@ -255,6 +343,14 @@ function setupEditButton(markdownContent) {
 				'?file=' + encodeURIComponent(filePath);
 			window.location.href = editorUrl;
 		});
+	}
+}
+
+// 设置导出按钮
+function setupExportButton(markdownContent) {
+	const exportBtn = document.getElementById('export-word-btn');
+	if (exportBtn) {
+		exportBtn.addEventListener('click', () => exportToWord(markdownContent));
 	}
 }
 // 导出为 Word 文档
@@ -318,7 +414,7 @@ function getDocumentTitle() {
 	// 从文件名获取
 	const pathname = window.location.pathname;
 	const filename = pathname.split('/').pop();
-	return filename.replace(/\.md$/, '') || 'document';
+	return filename.replace(/\.(md|mu|markdown)$/, '') || 'document';
 }
 // 创建完整的 HTML 文档
 function createFullHTML(bodyContent) {
@@ -436,69 +532,6 @@ async function downloadBlob(blob, filename) {
 		throw error;
 	}
 }
-// 加载样式
-function loadStyles() {
-	const styles = [
-		chrome.runtime.getURL('style/main.css'),
-		chrome.runtime.getURL('style/float-menu.css'),
-		chrome.runtime.getURL('style/theme-toggle.css'),
-		chrome.runtime.getURL('style/markdown.css'),
-	];
-
-	styles.forEach(styleUrl => {
-		const link = document.createElement('link');
-		link.rel = 'stylesheet';
-		link.href = styleUrl;
-		document.head.appendChild(link);
-	});
-
-	// 设置主题
-	detectAndSetTheme();
-}
-
-// 根据文件名获取图标
-function getFileIcon(filename) {
-	const ext = filename.split('.').pop().toLowerCase();
-
-	// 图片文件
-	if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(ext)) {
-		return '🖼️';
-	}
-	// 视频文件
-	if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(ext)) {
-		return '🎬';
-	}
-	// 音频文件
-	if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(ext)) {
-		return '🎵';
-	}
-	// 压缩文件
-	if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) {
-		return '📦';
-	}
-	// 代码文件
-	if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'go', 'rs', 'php', 'rb', 'swift'].includes(ext)) {
-		return '📝';
-	}
-	// Markdown 文件
-	if (['md', 'markdown'].includes(ext)) {
-		return '📄';
-	}
-	// 文档文件
-	if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
-		return '📋';
-	}
-	// 文本文件
-	if (['txt', 'log', 'csv', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(ext)) {
-		return '📃';
-	}
-	// 可执行文件
-	if (['exe', 'app', 'dmg', 'pkg', 'deb', 'rpm'].includes(ext)) {
-		return '⚙️';
-	}
-	// 默认文件图标
-	return '📄';
-}
 
 // 加载目录内容
 async function loadDirectoryContent(path) {
@@ -534,21 +567,21 @@ async function renderDirectory() {
 
 	// 替换页面内容
 	document.body.innerHTML = `<!-- 主题切换按钮 -->
-<div id="theme-toggle-btn" title="切换主题">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-	<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-	<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<div id="theme-toggle-btn" class="menu-item outside" title="切换主题">
+	<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+		<path class="sun-icon" d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+		<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+	</svg>
 </div>
 
 <div id="directory-container">
-<div id="directory-header">
-	<div id="directory-title">目录浏览器</div>
-	<div id="current-path-display">${currentPath}</div>
-</div>
-<div id="directory-list">
-	<div class="directory-loading">加载中</div>
-</div>
+	<div id="directory-header">
+		<div id="directory-title">目录浏览器</div>
+		<div id="current-path-display">${currentPath}</div>
+	</div>
+	<div id="directory-list">
+		<div class="directory-loading">加载中</div>
+	</div>
 </div>`;
 
 	// 加载样式
@@ -665,6 +698,49 @@ function loadDirectoryStyles() {
 		link.href = styleUrl;
 		document.head.appendChild(link);
 	});
+}
+// 根据文件名获取图标
+function getFileIcon(filename) {
+	const ext = filename.split('.').pop().toLowerCase();
+
+	// 图片文件
+	if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(ext)) {
+		return '🖼️';
+	}
+	// 视频文件
+	if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(ext)) {
+		return '🎬';
+	}
+	// 音频文件
+	if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(ext)) {
+		return '🎵';
+	}
+	// 压缩文件
+	if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) {
+		return '📦';
+	}
+	// 代码文件
+	if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'go', 'rs', 'php', 'rb', 'swift'].includes(ext)) {
+		return '📝';
+	}
+	// Markdown 文件
+	if (['md', 'markdown'].includes(ext)) {
+		return '📄';
+	}
+	// 文档文件
+	if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+		return '📋';
+	}
+	// 文本文件
+	if (['txt', 'log', 'csv', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(ext)) {
+		return '📃';
+	}
+	// 可执行文件
+	if (['exe', 'app', 'dmg', 'pkg', 'deb', 'rpm'].includes(ext)) {
+		return '⚙️';
+	}
+	// 默认文件图标
+	return '📄';
 }
 
 // 开始渲染

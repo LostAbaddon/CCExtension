@@ -556,6 +556,47 @@ function startHeartbeat() {
 }
 
 /**
+ * 净化文件名，移除或替换不合法字符
+ * @param {string} filename - 原始文件名
+ * @returns {string} - 净化后的文件名
+ */
+function sanitizeFilename(filename) {
+	if (!filename) return 'document';
+
+	// 分离文件名和扩展名
+	const lastDotIndex = filename.lastIndexOf('.');
+	let name, ext;
+	if (lastDotIndex > 0) {
+		name = filename.substring(0, lastDotIndex);
+		ext = filename.substring(lastDotIndex);
+	}
+	else {
+		name = filename;
+		ext = '';
+	}
+
+	// 净化文件名部分
+	let sanitized = name
+		.replace(/[<>:"/\\|?*]/g, '')  // 移除 Windows 禁止的字符
+		.replace(/[\x00-\x1f\x7f]/g, '')  // 移除控制字符
+		.replace(/\s+/g, ' ')  // 将连续空格替换为单个空格
+		.trim()  // 移除首尾空格
+		.replace(/^\.+|\.+$/g, '');  // 移除首尾的点号
+
+	// 如果净化后为空，使用默认名称
+	if (!sanitized) {
+		sanitized = 'document';
+	}
+
+	// 限制文件名长度（避免过长的文件名）
+	if (sanitized.length > 200) {
+		sanitized = sanitized.substring(0, 200);
+	}
+
+	return sanitized + ext;
+}
+
+/**
  * 监听 alarm 事件（用于延迟通知）
  */
 if (chrome.notifications) {
@@ -761,14 +802,17 @@ ActionCenter.downloadFile = async (sender, fileInfo) => {
 		// 直接使用 Data URL（base64 编码）
 		const dataUrl = `data:${fileInfo.mimeType};base64,${fileInfo.data}`;
 
+		// 净化文件名，移除非法字符
+		const safeFilename = sanitizeFilename(fileInfo.filename);
+
 		// 使用 chrome.downloads API 下载
 		const downloadId = await chrome.downloads.download({
 			url: dataUrl,
-			filename: fileInfo.filename,
+			filename: safeFilename,
 			saveAs: true
 		});
 
-		console.log('[Background] 文件下载已启动, ID:', downloadId);
+		console.log('[Background] 文件下载已启动, ID:', downloadId, '文件名:', safeFilename);
 
 		return true;
 	}

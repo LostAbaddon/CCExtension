@@ -48,19 +48,14 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/page-tracker.js",
         "components/theme-toggle.js",
-        "components/markup.js",
-        "components/html2docx.js",
         "style/main.css",
-        "style/float-menu.css",
-        "style/markdown.css",
         "style/theme.css",
         "style/theme-toggle.css",
+        "style/float-menu.css",
+        "style/markdown.css",
         "style/directory-browser.css",
-        "pages/settings.html",
-        "pages/markdown-editor.html",
-        "pages/markdown-editor.js"
+        "pages/markdown-editor.html"
       ],
       "matches": [
         "<all_urls>"

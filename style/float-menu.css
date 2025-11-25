@@ -102,6 +102,12 @@
 }
 
 /* 主题切换按钮图标 */
+#theme-toggle-btn.outside {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	z-index: 9999;
+}
 #theme-toggle-btn .sun-icon,
 #theme-toggle-btn .moon-icon {
 	display: none;
